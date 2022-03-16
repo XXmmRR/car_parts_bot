@@ -1,4 +1,4 @@
-'''Наш главный файл бота через него мы запускаем его и отлавливаем нажатия кнопок'''
+# Наш главный файл бота через него мы запускаем его и отлавливаем нажатия кнопок
 from keyboard import how_to_buy, how_to_sell, info_bot, channel_future
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
@@ -59,9 +59,19 @@ async def bot_future(callback: types.CallbackQuery):
     await callback.message.answer(channel_future, reply_markup=types.InlineKeyboardMarkup().add(start_back_button))
 
 
+# Отлавливаем кнопки 'заказать запчасть'
 @dp.callback_query_handler(text='buy_car_part')
 async def buy_part(callback: types.CallbackQuery):
     await callback.message.answer('Выберите первую букву марки авто', reply_markup=alphabet_menu)
+    await callback.answer()
+
+
+# Отлавливаем нажатие кнопки 'Выход'
+@dp.callback_query_handler(text='exit')
+async def exit_handler(callback: types.CallbackQuery):
+    await callback.message.edit_text('Добро пожаловать, car partsbot  ! Я @car_part_bot '
+                                     '- удобный бот-по заказу и продаже автомабильных запчастей',
+                                     reply_markup=start_menu)
 
 
 # *******************************************************************************************************

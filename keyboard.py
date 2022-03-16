@@ -45,7 +45,9 @@ about_menu.add(inline_menu[2], inline_menu[3], inline_menu[-1],
 
 # Меню
 alphabet_menu = types.InlineKeyboardMarkup(row_width=5)
-alphabet_menu.add(*alphabet_buttons)
+alphabet_menu.add(*alphabet_buttons[:-6])
+alphabet_menu.row(*alphabet_buttons[-6:])
+alphabet_menu.add(types.InlineKeyboardButton(text='❌Выход', callback_data='exit'))
 
 # *******************************************************************************************************
 
