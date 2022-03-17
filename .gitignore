@@ -1,3 +1,4 @@
 config.py
 .idea
 venv
+customers_add2DB.sql
