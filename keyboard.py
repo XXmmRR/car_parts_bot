@@ -31,6 +31,20 @@ add_offer_callbacks = ['offer_make', 'offer_add']
 add_offer_buttons = [types.InlineKeyboardButton(text=add_offer_text[x], callback_data=add_offer_callbacks[x])
                      for x in range(len(order_menu_text))]
 
+# Блок отправления контакта продавцу запчасти
+
+send_contact_block_text = ['Поделится контактом', 'Добавить еще запчасть на авто', 'Не отправлять предложение']
+send_contact_block_callbacks = ['send_contact', 'offer_add', 'send_no']
+send_contact_block_menu = [types.InlineKeyboardButton(text=send_contact_block_text[x],
+                          callback_data=send_contact_block_callbacks[x])
+                          for x in range(len(send_contact_block_text))]
+
+send_contact_block_text_accept = ['Да', 'Нет, вернуться к оптравке', 'Отправить заказ не делясь контактом']
+send_contact_block_callbacks_accept = ['exit', 'offer_make', 'send_anon']
+send_contact_block_accept_menu = [types.InlineKeyboardButton(text=send_contact_block_text_accept[x],
+                          callback_data=send_contact_block_callbacks_accept[x])
+                          for x in range(len(send_contact_block_text_accept))]
+
 # *******************************************************************************************************
 
 
@@ -69,6 +83,13 @@ order_menu.row(start_back_button, types.InlineKeyboardButton(text="❌Выход
 add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
 add_offer_menu.add(*add_offer_buttons)
 add_offer_menu.row(start_back_button, types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+
+
+send_menu = types.InlineKeyboardMarkup(row_width=1)
+send_menu.add(*send_contact_block_menu)
+
+send_menu_accept_inline = types.InlineKeyboardMarkup(row_width=1)
+send_menu_accept_inline.add(*send_contact_block_accept_menu)
 
 # *******************************************************************************************************
 
