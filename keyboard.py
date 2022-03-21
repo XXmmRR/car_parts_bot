@@ -20,6 +20,17 @@ alphabet_buttons = [types.InlineKeyboardButton(text=x, callback_data=f'letter_{x
 inline_menu = [types.InlineKeyboardButton(text=buttons_text[x], callback_data=buttons_callbacks[x])
                for x in range(len(buttons_text))]
 
+
+order_menu_text = ['Указать доп параметры', 'Пропустить доп параметры']
+order_menu_callbacks = ['order_add', 'order_skip']
+order_menu_buttons = [types.InlineKeyboardButton(text=order_menu_text[x], callback_data=order_menu_callbacks[x])
+                      for x in range(len(order_menu_text))]
+
+add_offer_text = ['Оформить заказ', 'Добавить еще запчасть на это авто']
+add_offer_callbacks = ['offer_make', 'offer_add']
+add_offer_buttons = [types.InlineKeyboardButton(text=add_offer_text[x], callback_data=add_offer_callbacks[x])
+                     for x in range(len(order_menu_text))]
+
 # *******************************************************************************************************
 
 
@@ -47,7 +58,17 @@ about_menu.add(inline_menu[2], inline_menu[3], inline_menu[-1],
 alphabet_menu = types.InlineKeyboardMarkup(row_width=5)
 alphabet_menu.add(*alphabet_buttons[:-6])
 alphabet_menu.row(*alphabet_buttons[-6:])
-alphabet_menu.add(types.InlineKeyboardButton(text='❌Выход', callback_data='exit'))
+alphabet_menu.add(types.InlineKeyboardButton(text="Авто с русскими названиями", callback_data='rus'))
+alphabet_menu.row(start_back_button, types.InlineKeyboardButton(text='❌Выход', callback_data='exit'))
+
+order_menu = types.InlineKeyboardMarkup(row_width=1)
+order_menu.add(*order_menu_buttons)
+order_menu.row(start_back_button, types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+
+
+add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
+add_offer_menu.add(*add_offer_buttons)
+add_offer_menu.row(start_back_button, types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
 
 # *******************************************************************************************************
 
@@ -67,4 +88,7 @@ channel_future = open('text_messages/channel_future.txt', 'r', encoding='utf8').
 
 
 # *******************************************************************************************************
+
+#
+
 
