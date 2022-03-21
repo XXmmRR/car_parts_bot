@@ -21,19 +21,19 @@ inline_menu = [types.InlineKeyboardButton(text=buttons_text[x], callback_data=bu
                for x in range(len(buttons_text))]
 
 
-order_menu_text = ['Указать доп параметры', 'Пропустить доп параметры']
+order_menu_text = ['🔧Указать доп параметры', 'Пропустить доп параметры⏩']
 order_menu_callbacks = ['order_add', 'order_skip']
 order_menu_buttons = [types.InlineKeyboardButton(text=order_menu_text[x], callback_data=order_menu_callbacks[x])
                       for x in range(len(order_menu_text))]
 
-add_offer_text = ['Оформить заказ', 'Добавить еще запчасть на это авто']
+add_offer_text = ['💰Оформить заказ ', '➕Добавить еще запчасть на это авто']
 add_offer_callbacks = ['offer_make', 'offer_add']
 add_offer_buttons = [types.InlineKeyboardButton(text=add_offer_text[x], callback_data=add_offer_callbacks[x])
                      for x in range(len(order_menu_text))]
 
 # Блок отправления контакта продавцу запчасти
 
-send_contact_block_text = ['Поделится контактом', 'Добавить еще запчасть на авто', 'Не отправлять предложение']
+send_contact_block_text = ['✅Поделится контактом', 'Добавить еще запчасть на авто', 'Не отправлять предложение']
 send_contact_block_callbacks = ['send_contact', 'offer_add', 'send_no']
 send_contact_block_menu = [types.InlineKeyboardButton(text=send_contact_block_text[x],
                           callback_data=send_contact_block_callbacks[x])

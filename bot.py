@@ -165,7 +165,7 @@ async def order(callback: types.CallbackQuery):
         menu = [types.InlineKeyboardButton(text=x, callback_data=f'body_{x}') for x in
                 sorted(list(set(user_key_board)))]
         mark_up.add(*menu)
-        mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='body_None'))
+        mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='body_None'))
         mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
         values = [str(x)+' ' for x in tmp[callback.message.chat.id].values() if x]
         await callback.message.edit_text(f'Вы выбрали  {"".join(values)}'
@@ -184,7 +184,7 @@ async def set_transmission(callback: types.CallbackQuery):
     menu = [types.InlineKeyboardButton(text=x, callback_data=f'transmission_{x}') for x in
             sorted(list(set(user_key_board)))]
     mark_up.add(*menu)
-    mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='transmission_None'))
+    mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='transmission_None'))
     mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
     if callback.data.split('_')[1] == 'None':
         tmp[callback.message.chat.id]['body_type'] = None
@@ -209,8 +209,7 @@ async def set_engine_type(callback: types.CallbackQuery):
     menu = [types.InlineKeyboardButton(text=x, callback_data=f'fuel_{x}') for x in
             sorted(list(set(user_key_board)))]
     mark_up.add(*menu)
-    print(menu)
-    mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='fuel_None'))
+    mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='fuel_None'))
     mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
     if callback.data.split('_')[1] == 'None':
         await callback.message.edit_text('Выберите тип двигателя', reply_markup=mark_up)
@@ -237,7 +236,7 @@ async def engine_contain(callback: types.CallbackQuery):
         menu = [types.InlineKeyboardButton(text=x, callback_data=f'contain_{x}') for x in
                 sorted(list(set(user_key_board)))]
         mark_up.add(*menu)
-        mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='contain_None'))
+        mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='contain_None'))
         mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
         await callback.message.edit_text('Выберите обьем двигателя', reply_markup=mark_up)
 
@@ -246,7 +245,7 @@ async def engine_contain(callback: types.CallbackQuery):
 @dp.callback_query_handler(Text(startswith='contain'))
 async def set_engine_value(callback: types.CallbackQuery):
     mark_up = types.InlineKeyboardMarkup(row_width=1)
-    mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='None'))
+    mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='None'))
     mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
     if callback.data.split('_')[1] == 'None':
         await VinCodeFSM.VIN.set()
@@ -281,7 +280,7 @@ async def vin_handler(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['vin'] = message.text
         await VinCodeFSM.next()
-    if len(message.text) == 17:
+    if len(message.text) == 17 and message.text.isalnum():
         tmp[message.chat.id]['vin'] = message.text
         await DetailFSM.next()
         await message.answer('Введите название детали')
@@ -296,24 +295,29 @@ async def vin_handler(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=DetailFSM.detail)
 async def handle_menu(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['detail'] = message.text
-        await DetailFSM.next()
-        tmp[message.chat.id]['details'].append(message.text)
-        detail_list = [x+'\n' for x in tmp[message.chat.id]['details']]
+    if len(message.text) > 5:
 
-    await message.answer(f'Введите название нужной запчасти'
-                         f'и при необходимости описание,'
-                         f'особые пожелания по комплектации,'
-                         f'цвету и т.д. (вводите название только'
-                         f'одной запчасти, если необходимо'
-                         f'несколько запчастей на это авто'
-                         f'нажмите после ввода первой запчасти'
-                         f'"Добавить еще запчасть на это авто",'
-                         f'если больше запчастей добавлять не'
-                         f'нужно нажмите "оформить заказ")\n'
-                         f'{"".join(detail_list)}',
-                         reply_markup=add_offer_menu)
+        async with state.proxy() as data:
+            data['detail'] = message.text
+            await DetailFSM.next()
+            tmp[message.chat.id]['details'].append(message.text)
+            detail_list = [x + '\n' for x in tmp[message.chat.id]['details']]
+
+        await message.answer(f'Введите название нужной запчасти'
+                             f'и при необходимости описание,'
+                             f'особые пожелания по комплектации,'
+                             f'цвету и т.д. (вводите название только'
+                             f'одной запчасти, если необходимо'
+                             f'несколько запчастей на это авто'
+                             f'нажмите после ввода первой запчасти'
+                             f'"Добавить еще запчасть на это авто",'
+                             f'если больше запчастей добавлять не'
+                             f'нужно нажмите "оформить заказ")\n'
+                             f'{"".join(detail_list)}',
+                             reply_markup=add_offer_menu)
+
+    else:
+        await message.answer('Название детали слишком короткое')
 
 
 @dp.callback_query_handler(text='None', state='*')
