@@ -165,7 +165,7 @@ async def order(callback: types.CallbackQuery):
         menu = [types.InlineKeyboardButton(text=x, callback_data=f'body_{x}') for x in
                 sorted(list(set(user_key_board)))]
         mark_up.add(*menu)
-        mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='body_None'))
+        mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='body_None'))
         mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
         values = [str(x)+' ' for x in tmp[callback.message.chat.id].values() if x]
         await callback.message.edit_text(f'Вы выбрали  {"".join(values)}'
@@ -184,7 +184,7 @@ async def set_transmission(callback: types.CallbackQuery):
     menu = [types.InlineKeyboardButton(text=x, callback_data=f'transmission_{x}') for x in
             sorted(list(set(user_key_board)))]
     mark_up.add(*menu)
-    mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='transmission_None'))
+    mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='transmission_None'))
     mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
     if callback.data.split('_')[1] == 'None':
         tmp[callback.message.chat.id]['body_type'] = None
@@ -209,7 +209,7 @@ async def set_engine_type(callback: types.CallbackQuery):
     menu = [types.InlineKeyboardButton(text=x, callback_data=f'fuel_{x}') for x in
             sorted(list(set(user_key_board)))]
     mark_up.add(*menu)
-    mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='fuel_None'))
+    mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='fuel_None'))
     mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
     if callback.data.split('_')[1] == 'None':
         await callback.message.edit_text('Выберите тип двигателя', reply_markup=mark_up)
@@ -231,12 +231,12 @@ async def engine_contain(callback: types.CallbackQuery):
         tmp[callback.message.chat.id]['volume'] = callback.data.split('_')[1]
         fuel_contain = session.query(BaseCars).filter(BaseCars.model.like
                                                       (f'{tmp[callback.message.chat.id]["model"]}')).all()
-        [user_key_board.append(x.volume) for x in fuel_contain]
+        [user_key_board.append(x.volume) for x in fuel_contain if x]
         mark_up = types.InlineKeyboardMarkup(row_width=1)
         menu = [types.InlineKeyboardButton(text=x, callback_data=f'contain_{x}') for x in
-                sorted(list(set(user_key_board)))]
+                sorted(list(set(user_key_board))) if x]
         mark_up.add(*menu)
-        mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='contain_None'))
+        mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='contain_None'))
         mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
         await callback.message.edit_text('Выберите обьем двигателя', reply_markup=mark_up)
 
@@ -245,7 +245,7 @@ async def engine_contain(callback: types.CallbackQuery):
 @dp.callback_query_handler(Text(startswith='contain'))
 async def set_engine_value(callback: types.CallbackQuery):
     mark_up = types.InlineKeyboardMarkup(row_width=1)
-    mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='None'))
+    mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='None'))
     mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
     if callback.data.split('_')[1] == 'None':
         await VinCodeFSM.VIN.set()
@@ -344,7 +344,8 @@ async def contact_handler(callback: types.CallbackQuery):
     menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data='предложение'))
     for key, value in tmp[callback.message.chat.id].items():
         if key != 'details':
-            parameters = parameters + key + " : " + value + '\n'
+            if value:
+                parameters = parameters + key + " : " + value + '\n'
     parameters = parameters.replace('mark_name', 'Марка').replace('model', 'Модель').replace('transmission', 'КПП') \
         .replace('body_type', 'Кузов').replace('volume', 'Тип двигателя').replace('vin', 'VIN') \
         .replace('gen_name', 'Поколение').replace('contain', 'Обьем двигателя')
