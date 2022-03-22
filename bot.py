@@ -181,7 +181,14 @@ async def order(callback: types.CallbackQuery):
                 sorted(list(set(user_key_board)))]
         mark_up.add(*menu)
         mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='body_None'))
-        mark_up.row(types.InlineKeyboardButton(text='Назад', callback_data='exit'), types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+        if tmp[callback.message.chat.id].get("gen_name"):
+            mark_up.row(types.InlineKeyboardButton(text='Назад',
+                                                   callback_data=f'gen_{tmp[callback.message.chat.id]["gen_name"]}'),
+                        types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+        else:
+            mark_up.row(types.InlineKeyboardButton(text='Назад',
+                                                   callback_data=f'model_{tmp[callback.message.chat.id]["model"]}'),
+                        types.InlineKeyboardButton(text="Выход", callback_data='exit'))
         values = [str(x)+' ' for x in tmp[callback.message.chat.id].values() if x]
         await callback.message.edit_text(f'Вы выбрали  {"".join(values)}'
                                          f' Выберите тип кузова', reply_markup=mark_up)
@@ -200,7 +207,8 @@ async def set_transmission(callback: types.CallbackQuery):
             sorted(list(set(user_key_board)))]
     mark_up.add(*menu)
     mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='transmission_None'))
-    mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
+    mark_up.row(types.InlineKeyboardButton(text='Назад', callback_data=f'order_add'),
+    types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
     if callback.data.split('_')[1] == 'None':
         tmp[callback.message.chat.id]['body_type'] = None
         await callback.message.edit_text('Выберите коробку передач', reply_markup=mark_up)
@@ -225,7 +233,9 @@ async def set_engine_type(callback: types.CallbackQuery):
             sorted(list(set(user_key_board)))]
     mark_up.add(*menu)
     mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='fuel_None'))
-    mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
+    mark_up.row(types.InlineKeyboardButton(text='Назад',
+                                           callback_data=f'body_{tmp[callback.message.chat.id]["body_type"]}'),
+                types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
     if callback.data.split('_')[1] == 'None':
         await callback.message.edit_text('Выберите тип двигателя', reply_markup=mark_up)
         tmp[callback.message.chat.id]['transmission'] = None
@@ -252,7 +262,9 @@ async def engine_contain(callback: types.CallbackQuery):
                 sorted(list(set(user_key_board))) if x]
         mark_up.add(*menu)
         mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='contain_None'))
-        mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
+        mark_up.row(types.InlineKeyboardButton(text='Назад',
+                    callback_data=f'transmission_{tmp[callback.message.chat.id]["transmission"]}')
+                    ,types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
         await callback.message.edit_text('Выберите обьем двигателя', reply_markup=mark_up)
 
 
