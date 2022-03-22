@@ -4,7 +4,7 @@ from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, start_back_button, alphabet_menu, \
-    order_menu_buttons, add_offer_menu, send_menu, send_menu_accept_inline
+    order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import BaseCars, Session
@@ -273,7 +273,8 @@ async def engine_contain(callback: types.CallbackQuery):
 async def set_engine_value(callback: types.CallbackQuery):
     mark_up = types.InlineKeyboardMarkup(row_width=1)
     mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='None'))
-    mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
+    mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'),
+               types.InlineKeyboardButton(text='Назад', callback_data='back_vin'))
     if callback.data.split('_')[1] == 'None':
         await VinCodeFSM.VIN.set()
         tmp[callback.message.chat.id]['contain'] = None
@@ -322,6 +323,11 @@ async def vin_handler(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=DetailFSM.detail)
 async def handle_menu(message: types.Message, state: FSMContext):
+    add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
+    add_offer_menu.add(*add_offer_buttons)
+    add_offer_menu.row(types.InlineKeyboardButton(text='Назад', callback_data=f'contain_{tmp[message.chat.id]["contain"]}'),
+    types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+
     if len(message.text) > 5:
 
         async with state.proxy() as data:
@@ -361,6 +367,31 @@ async def skip_vin(callback: types.CallbackQuery, state: FSMContext):
     await DetailFSM.next()
 
     await callback.message.answer('Введите название детали')
+
+
+@dp.callback_query_handler(text="back_vin", state=VinCodeFSM)
+async def back_vin(callback: types.CallbackQuery, state: FSMContext):
+
+    await state.finish()
+    user_key_board = []
+    session = Session()
+    if callback.data.split('_')[1] == 'None':
+        tmp[callback.message.chat.id]['volume'] = None
+        await callback.message.answer('Пропустить')
+    else:
+        tmp[callback.message.chat.id]['volume'] = callback.data.split('_')[1]
+        fuel_contain = session.query(BaseCars).filter(BaseCars.model.like
+                                                      (f'{tmp[callback.message.chat.id]["model"]}')).all()
+        [user_key_board.append(x.volume) for x in fuel_contain if x]
+        mark_up = types.InlineKeyboardMarkup(row_width=1)
+        menu = [types.InlineKeyboardButton(text=x, callback_data=f'contain_{x}') for x in
+                sorted(list(set(user_key_board))) if x]
+        mark_up.add(*menu)
+        mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='contain_None'))
+        mark_up.row(types.InlineKeyboardButton(text='Назад',
+                    callback_data=f'transmission_{tmp[callback.message.chat.id]["transmission"]}')
+                    ,types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+        await callback.message.edit_text('Выберите обьем двигателя', reply_markup=mark_up)
 
 
 @dp.callback_query_handler(Text(startswith='send_'))
