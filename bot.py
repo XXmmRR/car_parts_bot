@@ -4,7 +4,7 @@ from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, start_back_button, alphabet_menu, \
-    order_menu, add_offer_menu, send_menu, send_menu_accept_inline
+    order_menu_buttons, add_offer_menu, send_menu, send_menu_accept_inline
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import BaseCars, Session
@@ -89,7 +89,8 @@ async def set_letter(callback: types.CallbackQuery):
     [user_key_board.append(x.mark) for x in mark]
     menu = [types.InlineKeyboardButton(text=x, callback_data=f'mark_{x}') for x in list(set(user_key_board))]
     order.add(*menu)
-    order.row(start_back_button, types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+    order.row(types.InlineKeyboardButton(text='🔙Назад', callback_data='buy_car_part'),
+              types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
     await callback.message.edit_text(f'Укажите марку авто ', reply_markup=order)
     await callback.answer()
 
@@ -98,6 +99,7 @@ async def set_letter(callback: types.CallbackQuery):
 async def set_mark(callback: types.CallbackQuery):
     tmp[callback.message.chat.id] = {}
     mark_name = callback.data.split('_')[1]
+    letter = mark_name[0]
     order = types.InlineKeyboardMarkup(row_width=2)
     user_key_board = []
     session = Session()
@@ -107,7 +109,8 @@ async def set_mark(callback: types.CallbackQuery):
     menu = [types.InlineKeyboardButton(text=x, callback_data=f'model_{x}') for x in sorted(list(set(user_key_board)))
             if x]
     order.add(*menu)
-    order.row(start_back_button, types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+    order.row(types.InlineKeyboardButton(text='🔙Назад', callback_data=f'letter_{letter}'),
+              types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
     tmp[callback.message.chat.id]['mark_name'] = mark_name
     await callback.message.edit_text(f'Укажите модель авто {mark_name}', reply_markup=order)
     await callback.answer()
@@ -126,10 +129,17 @@ async def set_model(callback: types.CallbackQuery):
         menu = [types.InlineKeyboardButton(text=x, callback_data=f'gen_{x}') for x in sorted(list(set(user_key_board)))]
         order.add(*menu)
         tmp[callback.message.chat.id]['model'] = model_name
-        order.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
+        order.row(types.InlineKeyboardButton(text='🔙Назад',
+                                             callback_data=f'mark_{tmp[callback.message.chat.id]["mark_name"]}'),
+                  types.InlineKeyboardButton(text="❌Выход", callback_data='exit'),)
         await callback.message.edit_text(f'Укажите поколение авто {model_name}', reply_markup=order)
     else:
         tmp[callback.message.chat.id]['model'] = model_name
+        order_menu = types.InlineKeyboardMarkup(row_width=1)
+        order_menu.add(*order_menu_buttons)
+        order_menu.row(types.InlineKeyboardButton(text='Назад',
+                                                  callback_data=f'mark_{tmp[callback.message.chat.id]["mark_name"]}'),
+                       types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
         values = [str(x)+' ' for x in tmp[callback.message.chat.id].values( ) if x]
         await callback.message.edit_text(f'Вы выбрали  {"".join(values)}'
                                          f'Хотите указать дополнительные параметры: тип кузова, тип и объем'
@@ -138,6 +148,11 @@ async def set_model(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(Text(startswith='gen_'))
 async def set_get(callback: types.CallbackQuery):
+    order_menu = types.InlineKeyboardMarkup(row_width=1)
+    order_menu.add(*order_menu_buttons)
+    order_menu.row(types.InlineKeyboardButton(text='Назад',
+                                              callback_data=f'model_{tmp[callback.message.chat.id]["model"]}'),
+                   types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
     gen_name = callback.data.split('_')[1]
     tmp[callback.message.chat.id]['gen_name'] = gen_name
     values = [str(x) + ' ' for x in tmp[callback.message.chat.id].values() if x]
@@ -166,7 +181,7 @@ async def order(callback: types.CallbackQuery):
                 sorted(list(set(user_key_board)))]
         mark_up.add(*menu)
         mark_up.add(types.InlineKeyboardButton(text='Пропустить', callback_data='body_None'))
-        mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='exit'), start_back_button)
+        mark_up.row(types.InlineKeyboardButton(text='Назад', callback_data='exit'), types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
         values = [str(x)+' ' for x in tmp[callback.message.chat.id].values() if x]
         await callback.message.edit_text(f'Вы выбрали  {"".join(values)}'
                                          f' Выберите тип кузова', reply_markup=mark_up)

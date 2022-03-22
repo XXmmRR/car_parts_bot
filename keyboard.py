@@ -77,7 +77,6 @@ alphabet_menu.row(start_back_button, types.InlineKeyboardButton(text='❌Вых�
 
 order_menu = types.InlineKeyboardMarkup(row_width=1)
 order_menu.add(*order_menu_buttons)
-order_menu.row(start_back_button, types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
 
 
 add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
