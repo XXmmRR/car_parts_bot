@@ -8,7 +8,7 @@ from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, st
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import BaseCars, Session
-from fsms import DetailFSM, VinCodeFSM
+from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer
 from aiogram.dispatcher import FSMContext
 
 from config import TOKEN  # импортируем из config.py токен бота
@@ -17,6 +17,10 @@ bot = Bot(token=TOKEN)  # Передаем боту токен
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 group_id = -1001729453823
+
+answer = {}
+
+admins = [1651350663]
 
 tmp = {}
 
@@ -36,6 +40,14 @@ async def process_start_command(message: types.Message):  # Отлавливае
 async def help_shipping(callback: types.CallbackQuery):
     await callback.message.answer(how_to_buy, reply_markup=shipping_menu)
     await callback.answer()
+
+
+@dp.callback_query_handler(text="help_message")
+async def feedback(callback: types.CallbackQuery):
+    menu = types.InlineKeyboardMarkup()
+    menu.add(types.InlineKeyboardButton(text='Отменить', callback_data='cancel'))
+    await callback.message.answer('Введите ваше сообщение', reply_markup=menu)
+    await FeedBackFSM.body.set()
 
 
 # Отлавливаем нажатие кнопки как продать
@@ -321,6 +333,33 @@ async def vin_handler(message: types.Message, state: FSMContext):
             await VinCodeFSM.next()
 
 
+@dp.message_handler(state=FeedBackFSM)
+async def get_feedback(message: types.Message):
+    mark_up = types.InlineKeyboardMarkup()
+    if len(message.text) < 10 or len(message.text) > 200:
+        await message.answer('Ваще сообщение слишком длинное или слишком короткое')
+    else:
+        mark_up.add(types.InlineKeyboardButton(text='Ответить', callback_data=f'answ_{message.from_user.id}'))
+        for i in admins:
+            await bot.send_message(i, f'Сообщение от пользователя @{message.from_user.username}:\n{message.text}',
+                                   reply_markup=mark_up)
+        await message.answer('Ваше сообщение отправлено в поддержку')
+        await FeedBackFSM.next()
+
+
+@dp.callback_query_handler(Text(startswith='answ_'))
+async def feed_back_answer(callback: types.CallbackQuery):
+    answer['id'] = callback.data.split('_')[1]
+    await callback.message.answer('Введите свой ответ')
+    await FeedBackAnswer.body.set()
+
+
+@dp.message_handler(state=FeedBackAnswer)
+async def send_answ_message(message: types.Message, state: FSMContext):
+    await message.answer('Ваше сообщение отправлено')
+    await bot.send_message(answer['id'], f'Сообщение от админа\n{message.text}')
+
+
 @dp.message_handler(state=DetailFSM.detail)
 async def handle_menu(message: types.Message, state: FSMContext):
     add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
@@ -367,6 +406,14 @@ async def skip_vin(callback: types.CallbackQuery, state: FSMContext):
     await DetailFSM.next()
 
     await callback.message.answer('Введите название детали')
+
+
+@dp.callback_query_handler(text='cancel', state='*')
+async def skip_feedbacl(callback: types.CallbackQuery, state: FSMContext):
+
+    await state.finish()
+    await callback.message.answer('Вы отменили ввод сообщение')
+    await callback.answer()
 
 
 @dp.callback_query_handler(text="back_vin", state=VinCodeFSM)

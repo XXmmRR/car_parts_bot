@@ -11,3 +11,11 @@ class DetailFSM(StatesGroup):
 
 class VinCodeFSM(StatesGroup):
     VIN = State()
+
+
+class FeedBackFSM(StatesGroup):
+    body = State()
+
+
+class FeedBackAnswer(StatesGroup):
+    body = State()
