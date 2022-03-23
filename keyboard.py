@@ -16,6 +16,14 @@ buttons_callbacks = ['help_shipping', 'help_sell', 'add_car',
 start_back_button = types.InlineKeyboardButton(text="🔙Назад", callback_data='back')
 
 alphabet_buttons = [types.InlineKeyboardButton(text=x, callback_data=f'letter_{x}') for x in ascii_uppercase]
+a = ord('а')
+alphabet_buttons_ru_text = ''.join([chr(i) for i in range(a,a+6)] + [chr(a+33)] + [chr(i) for i in range(a+6,a+32)])\
+    .replace('ь', '').replace('ы', '').replace('ъ', '').upper()
+
+alphabet_buttons_ru = [types.InlineKeyboardButton(text=x, callback_data=f'letter_{x}') for x in
+                       alphabet_buttons_ru_text]
+print(alphabet_buttons_ru)
+
 
 inline_menu = [types.InlineKeyboardButton(text=buttons_text[x], callback_data=buttons_callbacks[x])
                for x in range(len(buttons_text))]
@@ -72,8 +80,14 @@ about_menu.add(inline_menu[2], inline_menu[3], inline_menu[-1],
 alphabet_menu = types.InlineKeyboardMarkup(row_width=5)
 alphabet_menu.add(*alphabet_buttons[:-6])
 alphabet_menu.row(*alphabet_buttons[-6:])
-alphabet_menu.add(types.InlineKeyboardButton(text="Авто с русскими названиями", callback_data='rus'))
+alphabet_menu.add(types.InlineKeyboardButton(text="Авто с русскими названиями", callback_data='buy_car_part_ru'))
 alphabet_menu.row(start_back_button, types.InlineKeyboardButton(text='❌Выход', callback_data='exit'))
+
+
+alphabet_menu_ru = types.InlineKeyboardMarkup(row_width=5)
+alphabet_menu_ru.add(*alphabet_buttons_ru)
+alphabet_menu_ru.add(types.InlineKeyboardButton(text="Авто с английскими названиями", callback_data='buy_car_part'))
+alphabet_menu_ru.row(start_back_button, types.InlineKeyboardButton(text='❌Выход', callback_data='exit'))
 
 order_menu = types.InlineKeyboardMarkup(row_width=1)
 order_menu.add(*order_menu_buttons)

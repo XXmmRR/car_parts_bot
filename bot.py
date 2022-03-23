@@ -4,7 +4,7 @@ from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, start_back_button, alphabet_menu, \
-    order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline
+    order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline, alphabet_menu_ru, alphabet_buttons_ru_text
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import BaseCars, Session
@@ -90,15 +90,25 @@ async def buy_part(callback: types.CallbackQuery):
     await callback.answer()
 
 
+@dp.callback_query_handler(text='buy_car_part_ru')
+async def buy_part(callback: types.CallbackQuery):
+    await callback.message.edit_text('Выберите первую букву марки авто', reply_markup=alphabet_menu_ru)
+    await callback.answer()
+
+
 @dp.callback_query_handler(Text(startswith='letter_'))
 async def set_letter(callback: types.CallbackQuery):
     order = types.InlineKeyboardMarkup(row_width=2)
     user_key_board = []
     letter = callback.data.split('_')[1]
     session = Session()
-    mark = session.query(BaseCars).filter(BaseCars.mark.like(f'{letter}%')).all()
+    if letter in alphabet_buttons_ru_text:
+        mark = session.query(BaseCars).filter(BaseCars.cyrillic_mark.like(f'{letter}%')).all()
+        [user_key_board.append(x.cyrillic_mark) for x in mark]
+    else:
+        mark = session.query(BaseCars).filter(BaseCars.mark.like(f'{letter}%')).all()
+        [user_key_board.append(x.mark) for x in mark]
     session.close()
-    [user_key_board.append(x.mark) for x in mark]
     menu = [types.InlineKeyboardButton(text=x, callback_data=f'mark_{x}') for x in list(set(user_key_board))]
     order.add(*menu)
     order.row(types.InlineKeyboardButton(text='🔙Назад', callback_data='buy_car_part'),
@@ -115,9 +125,14 @@ async def set_mark(callback: types.CallbackQuery):
     order = types.InlineKeyboardMarkup(row_width=2)
     user_key_board = []
     session = Session()
-    model = session.query(BaseCars).filter(BaseCars.mark.like(f'{mark_name}%')).all()
+    if mark_name[0] in alphabet_buttons_ru_text:
+        model = session.query(BaseCars).filter(BaseCars.cyrillic_mark.like(f'{mark_name}%')).all()
+        [user_key_board.append(x.cyrillic_model) for x in model]
+    else:
+        model = session.query(BaseCars).filter(BaseCars.mark.like(f'{mark_name}%')).all()
+        [user_key_board.append(x.model) for x in model]
+
     session.close()
-    [user_key_board.append(x.model) for x in model]
     menu = [types.InlineKeyboardButton(text=x, callback_data=f'model_{x}') for x in sorted(list(set(user_key_board)))
             if x]
     order.add(*menu)
@@ -152,7 +167,7 @@ async def set_model(callback: types.CallbackQuery):
         order_menu.row(types.InlineKeyboardButton(text='Назад',
                                                   callback_data=f'mark_{tmp[callback.message.chat.id]["mark_name"]}'),
                        types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
-        values = [str(x)+' ' for x in tmp[callback.message.chat.id].values( ) if x]
+        values = [str(x)+' ' for x in tmp[callback.message.chat.id].values() if x if not isinstance(x, list)]
         await callback.message.edit_text(f'Вы выбрали  {"".join(values)}'
                                          f'Хотите указать дополнительные параметры: тип кузова, тип и объем'
                                          f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
@@ -167,7 +182,7 @@ async def set_get(callback: types.CallbackQuery):
                    types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
     gen_name = callback.data.split('_')[1]
     tmp[callback.message.chat.id]['gen_name'] = gen_name
-    values = [str(x) + ' ' for x in tmp[callback.message.chat.id].values() if x]
+    values = [str(x) + ' ' for x in tmp[callback.message.chat.id].values() if x and not isinstance(x, list)]
     await callback.message.edit_text(f'Вы выбрали {"".join(values)}'
                                      f'Хотите указать дополнительные параметры: тип кузова, тип и объем'
                                      f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
@@ -186,6 +201,11 @@ async def order(callback: types.CallbackQuery):
         mark_up = types.InlineKeyboardMarkup(row_width=1)
         user_key_board = []
         session = Session()
+        model = [tmp[callback.message.chat.id]["model"]]
+        print(model[0])
+        if model[0][0] in alphabet_buttons_ru_text:
+            model = session.query(BaseCars).filter(BaseCars.cyrillic_model.like(f'{model[0]}')).all()
+            print(model)
         body_types = session.query(BaseCars).filter(BaseCars.model.like
                                                     (f'{tmp[callback.message.chat.id]["model"]}')).all()
         [user_key_board.append(x.body_type) for x in body_types]
@@ -201,7 +221,7 @@ async def order(callback: types.CallbackQuery):
             mark_up.row(types.InlineKeyboardButton(text='Назад',
                                                    callback_data=f'model_{tmp[callback.message.chat.id]["model"]}'),
                         types.InlineKeyboardButton(text="Выход", callback_data='exit'))
-        values = [str(x)+' ' for x in tmp[callback.message.chat.id].values() if x]
+        values = [str(x) + ' ' for x in tmp[callback.message.chat.id].values() if x and not isinstance(x, list)]
         await callback.message.edit_text(f'Вы выбрали  {"".join(values)}'
                                          f' Выберите тип кузова', reply_markup=mark_up)
 
@@ -223,6 +243,7 @@ async def set_transmission(callback: types.CallbackQuery):
     types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
     if callback.data.split('_')[1] == 'None':
         tmp[callback.message.chat.id]['body_type'] = None
+        print(mark_up)
         await callback.message.edit_text('Выберите коробку передач', reply_markup=mark_up)
         await callback.message.answer('Пропустить')
         await callback.answer()
@@ -293,7 +314,7 @@ async def set_engine_value(callback: types.CallbackQuery):
         await callback.message.answer('Введите VIN код вашего авто', reply_markup=mark_up)
     else:
         tmp[callback.message.chat.id]['contain'] = callback.data.split('_')[1]
-        values = [str(x)+' ' for x in tmp[callback.message.chat.id].values() if x]
+        values = [str(x) + ' ' for x in tmp[callback.message.chat.id].values() if x and not isinstance(x, list)]
         await VinCodeFSM.VIN.set()
         await callback.message.edit_text(f'Вы выбрали {"".join(values)}'
                                          f'Введите VIN код вашего авто', reply_markup=mark_up)
@@ -302,7 +323,7 @@ async def set_engine_value(callback: types.CallbackQuery):
 @dp.callback_query_handler(Text(startswith='offer_'))
 async def order_manage(callback: types.CallbackQuery):
     if callback.data.split('_')[1] == 'make':
-        values = [str(x)+' ' for x in tmp[callback.message.chat.id].values() if not isinstance(x, list)]
+        values = [str(x) + ' ' for x in tmp[callback.message.chat.id].values() if x and not isinstance(x, list)]
         detail_list = [x+'\n' for x in tmp[callback.message.chat.id]['details']]
         await callback.message.edit_text(f'Спасибо за Ваш заказ! '
                                       f'{" ".join(values)}'
@@ -341,7 +362,7 @@ async def get_feedback(message: types.Message):
     else:
         mark_up.add(types.InlineKeyboardButton(text='Ответить', callback_data=f'answ_{message.from_user.id}'))
         for i in admins:
-            await bot.send_message(i, f'Сообщение от пользователя @{message.from_user.username}:\n{message.text}',
+            await bot.send_message(i, f'Сообщение  от пользователя @{message.from_user.username}:\n{message.text}',
                                    reply_markup=mark_up)
         await message.answer('Ваше сообщение отправлено в поддержку')
         await FeedBackFSM.next()
@@ -350,22 +371,36 @@ async def get_feedback(message: types.Message):
 @dp.callback_query_handler(Text(startswith='answ_'))
 async def feed_back_answer(callback: types.CallbackQuery):
     answer['id'] = callback.data.split('_')[1]
-    await callback.message.answer('Введите свой ответ')
+    menu = types.InlineKeyboardMarkup()
+    menu.add(types.InlineKeyboardButton(text='Отменить', callback_data='cancel'))
+    await callback.message.answer('Введите свой ответ', reply_markup=menu)
     await FeedBackAnswer.body.set()
 
 
 @dp.message_handler(state=FeedBackAnswer)
 async def send_answ_message(message: types.Message, state: FSMContext):
     await message.answer('Ваше сообщение отправлено')
-    await bot.send_message(answer['id'], f'Сообщение от админа\n{message.text}')
+    await bot.send_message(answer['id'], f'Сообщение от админа:\n{message.text}')
 
 
 @dp.message_handler(state=DetailFSM.detail)
 async def handle_menu(message: types.Message, state: FSMContext):
     add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
     add_offer_menu.add(*add_offer_buttons)
-    add_offer_menu.row(types.InlineKeyboardButton(text='Назад', callback_data=f'contain_{tmp[message.chat.id]["contain"]}'),
-    types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+    if tmp[message.chat.id].get('contain'):
+        add_offer_menu.row(types.InlineKeyboardButton(text='Назад', callback_data=f'contain_'
+                                                                                  f'{tmp[message.chat.id]["contain"]}'),
+                           types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+    else:
+        if tmp[message.chat.id].get('gen_name'):
+
+            add_offer_menu.row(types.InlineKeyboardButton(text='Назад', callback_data=
+            f'gen_{tmp[message.chat.id]["gen_name"]}'),
+                               types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
+        else:
+            add_offer_menu.row(types.InlineKeyboardButton(text='Назад', callback_data=
+            f'model_{tmp[message.chat.id]["model"]}'),
+                               types.InlineKeyboardButton(text="❌Выход", callback_data='exit'))
 
     if len(message.text) > 5:
 
