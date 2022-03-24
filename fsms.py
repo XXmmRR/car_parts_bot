@@ -19,3 +19,7 @@ class FeedBackFSM(StatesGroup):
 
 class FeedBackAnswer(StatesGroup):
     body = State()
+
+
+class PhoneNumber(StatesGroup):
+    number = State()

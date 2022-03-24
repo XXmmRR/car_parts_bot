@@ -22,7 +22,6 @@ alphabet_buttons_ru_text = ''.join([chr(i) for i in range(a,a+6)] + [chr(a+33)] 
 
 alphabet_buttons_ru = [types.InlineKeyboardButton(text=x, callback_data=f'letter_{x}') for x in
                        alphabet_buttons_ru_text]
-print(alphabet_buttons_ru)
 
 
 inline_menu = [types.InlineKeyboardButton(text=buttons_text[x], callback_data=buttons_callbacks[x])
@@ -41,13 +40,13 @@ add_offer_buttons = [types.InlineKeyboardButton(text=add_offer_text[x], callback
 
 # Блок отправления контакта продавцу запчасти
 
-send_contact_block_text = ['✅Поделится контактом', 'Добавить еще запчасть на авто', 'Не отправлять предложение']
+send_contact_block_text = ['✅Поделится контактом', '➕Добавить еще запчасть на авто', '❌Не отправлять предложение']
 send_contact_block_callbacks = ['send_contact', 'offer_add', 'send_no']
 send_contact_block_menu = [types.InlineKeyboardButton(text=send_contact_block_text[x],
                           callback_data=send_contact_block_callbacks[x])
                           for x in range(len(send_contact_block_text))]
 
-send_contact_block_text_accept = ['Да', 'Нет, вернуться к оптравке', 'Отправить заказ не делясь контактом']
+send_contact_block_text_accept = ['❌Да', '⏩Нет, вернуться к отправке', '📵Отправить заказ не делясь контактом']
 send_contact_block_callbacks_accept = ['exit', 'offer_make', 'send_anon']
 send_contact_block_accept_menu = [types.InlineKeyboardButton(text=send_contact_block_text_accept[x],
                           callback_data=send_contact_block_callbacks_accept[x])
@@ -125,4 +124,18 @@ channel_future = open('text_messages/channel_future.txt', 'r', encoding='utf8').
 
 #
 
+def get_pref(tmp):
+    return tmp[list(tmp.keys())[-2]]
 
+
+def get_back_buttons(markup, back_command, exit_data='exit', exit_text ='❌Выход', back_text='🔙Назад'):
+    markup.row(types.InlineKeyboardButton(text=back_text, callback_data=f'{back_command}'),
+              types.InlineKeyboardButton(text=exit_text, callback_data=exit_data))
+
+
+def get_values(tmp, sec_dict):
+    return ''.join([str(x) + ' ' for x in tmp[sec_dict.message.chat.id].values() if x and not isinstance(x, list)])
+
+
+def add_skip_button(markup, data):
+    markup.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data=data))

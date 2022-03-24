@@ -1,14 +1,13 @@
 """Тут будет вся логика связанная с бд"""
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Float
-from openpyxl import load_workbook
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime
+from keyboard import alphabet_buttons_ru_text
 
-book = load_workbook('databases/base_cars_full.xlsx', read_only=True)
-sheet = book.active
+import datetime
 
-rows = sheet.iter_rows()
+
 DATABASE_NAME = 'bot.sqlite'
 
 engine = create_engine(f"sqlite:///{DATABASE_NAME}")
@@ -81,11 +80,103 @@ class BaseCars(Base):
     fuel_tank_capacity = Column(Integer, nullable=True)
 
 
+def get_mark_list(letter):
+    session = Session()
+    if letter in alphabet_buttons_ru_text:
+        mark = session.query(BaseCars).filter(BaseCars.cyrillic_mark.like(f'{letter}%')).all()
+    else:
+        mark = session.query(BaseCars).filter(BaseCars.mark.like(f'{letter}%')).all()
+    session.close()
+    return mark
+
+
+def get_mark_markup(mark_list, letter):
+    if letter in alphabet_buttons_ru_text:
+        markup = [x.cyrillic_mark for x in mark_list]
+    else:
+        markup = [x.mark for x in mark_list]
+    return sorted(list(frozenset(markup)))
+
+
+def get_model_list(mark):
+    session = Session()
+    if mark[0] in alphabet_buttons_ru_text:
+        models = session.query(BaseCars).filter(BaseCars.cyrillic_mark.like(f'{mark}%')).all()
+    else:
+        models = session.query(BaseCars).filter(BaseCars.mark.like(f'{mark}%')).all()
+    session.close()
+    return models
+
+
+def get_model_markup(model_list, model):
+    if model[0] in alphabet_buttons_ru_text:
+        markup = [x.cyrillic_model for x in model_list]
+    else:
+        markup = [x.model for x in model_list]
+    return sorted(frozenset(markup))
+
+
 def create_db():
     Base.metadata.create_all(engine)
     session = Session()
     session.commit()
 
 
-if __name__ == '__main__':
-    pass
+def get_generation_list(model):
+    session = Session()
+    if model[0] in alphabet_buttons_ru_text:
+        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%')).all()
+    else:
+        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%')).all()
+    session.close()
+    return models
+
+
+def get_generation_markup(model_data):
+    try:
+        markup = [x.generation + ' ' + str(x.year_from) + "-" + str(x.year_to) for x in model_data]
+    except:
+        pre_markup = [x.generation for x in model_data if x]
+        markup = [x for x in pre_markup if x]
+    return sorted(list(frozenset(markup)))
+
+
+def get_steps(model):
+    session = Session()
+    steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%')).all()
+    bodies = list(frozenset([x.body_type for x in steps]))
+    transmissions = list(frozenset([x.transmission for x in steps]))
+    engine_types = list(frozenset([x.engine_type for x in steps]))
+    volume = list(frozenset([x.volume for x in steps]))
+    session.close()
+    return bodies, transmissions, engine_types, volume
+
+
+def get_bodies(data):
+    return data[0]
+
+
+def get_transmissiom(data):
+    return data[1]
+
+
+def get_engine(data):
+    return data[2]
+
+
+def get_engine_volume(data):
+    return data[3]
+
+
+def get_param(tmp, message):
+    parameters = ''
+    for key, value in tmp[message.chat.id].items():
+        if key != 'details':
+            if value:
+                parameters = parameters + key + " : " + value + '\n'
+
+        parameters = parameters.replace('mark', 'Марка').replace('model', 'Модель').replace('transmission', 'КПП') \
+            .replace('body', 'Кузов').replace('engine_type', 'Тип двигателя').replace('vin', 'VIN') \
+            .replace('gen', 'Поколение').replace('engine_volume', 'Обьем двигателя')
+
+    return parameters
