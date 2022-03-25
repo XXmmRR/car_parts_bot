@@ -158,7 +158,7 @@ async def get_gen(callback: types.CallbackQuery):
         values = get_values(stack, callback)
         get_back_buttons(markup=order_menu, back_command=get_pref(tmp[callback.message.chat.id]))
         await callback.message.edit_text(f'Вы выбрали {values}'
-                                         f'Хотите указать дополнительные параметры: тип кузова, тип и объем'
+                                         f'Хотите указать дополнительные параметры: тип кузова, тип и объем '
                                          f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
 
 
@@ -174,7 +174,7 @@ async def get_params(callback: types.CallbackQuery):
     values = get_values(stack, callback)
     get_back_buttons(markup=order_menu, back_command=get_pref(tmp[callback.message.chat.id]))
     await callback.message.edit_text(f'Вы выбрали {values}'
-                                     f'Хотите указать дополнительные параметры: тип кузова, тип и объем'
+                                     f'Хотите указать дополнительные параметры: тип кузова, тип и объем '
                                      f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
 
 
@@ -251,11 +251,12 @@ async def set_engine_volume(callback: types.CallbackQuery):
     tmp[callback.message.chat.id]['engine_type'] = callback.data
     engine_volume = get_steps(stack[callback.message.chat.id]['model'])
     engine_volume_text = [types.InlineKeyboardButton(text=x, callback_data=f'volume_{x}') for x in
-                          get_engine_volume(engine_volume)]
+                          get_engine_volume(engine_volume) if x]
     menu.add(*engine_volume_text)
     add_skip_button(markup=menu, data='volume_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
+    print(menu)
     await callback.message.edit_text(f'Вы выбрали {values} Выберите объем двигателя', reply_markup=menu)
 
 
@@ -286,21 +287,21 @@ async def handle_menu(message: types.Message, state: FSMContext):
 
         await DetailFSM.next()
         stack[message.chat.id]['details'].append(message.text)
-        detail_list = [x + '\n' for x in stack[message.chat.id]['details']]
+        detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
         get_back_buttons(markup=add_offer_menu, back_command=get_pref(tmp[message.chat.id]), exit_data='pre_exit')
         char = get_param(tmp=stack, message=message)
         await message.answer(f'Ваш заказ на авто:\n'
                              f'{char}'
-                             f'Введите название нужной запчасти'
-                             f'и при необходимости описание,'
-                             f'особые пожелания по комплектации,'
-                             f'цвету и т.д. (вводите название только'
-                             f'одной запчасти, если необходимо'
-                             f'несколько запчастей на это авто'
-                             f'нажмите после ввода первой запчасти'
-                             f'"Добавить еще запчасть на это авто",'
-                             f'если больше запчастей добавлять не'
-                             f'нужно нажмите "оформить заказ")\n'
+                             f'Введите название нужной запчасти '
+                             f'и при необходимости описание, '
+                             f'особые пожелания по комплектации, '
+                             f'цвету и т.д. (вводите название только '
+                             f'одной запчасти, если необходимо '
+                             f'несколько запчастей на это авто '
+                             f'нажмите после ввода первой запчасти '
+                             f'"Добавить еще запчасть на это авто ",'
+                             f'если больше запчастей добавлять не '
+                             f'нужно нажмите "оформить заказ")\n '
                              f'Вы уже добавили запчасти:\n'
                              f'{"".join(detail_list)}',
                              reply_markup=add_offer_menu)
@@ -313,11 +314,11 @@ async def handle_menu(message: types.Message, state: FSMContext):
 async def order_manage(callback: types.CallbackQuery):
     if callback.data.split('_')[1] == 'make':
         value = get_values(stack, callback)
-        detail_list = [x+'\n' for x in stack[callback.message.chat.id]['details']]
+        detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[callback.message.chat.id]['details'], 1)]
         await callback.message.edit_text(f'Спасибо за Ваш заказ! '
                                       f'{value}\n'
-                                      f'{" ".join(detail_list)}'
-                                      f'чтобы получать предложения от'
+                                      f'{" ".join(detail_list)} '
+                                      f'чтобы получать предложения от '
                                       f'продавцов нажмите "поделиться '
                                       f'контактом"', reply_markup=send_menu)
     elif callback.data.split('_')[1] == 'add':
@@ -383,7 +384,7 @@ async def get_number(message: types.Message, state: FSMContext):
     await state.finish()
 
     values = get_param(tmp=stack, message=message)
-    detail_list = [x + '\n' for c, x in enumerate(stack[message.chat.id]['details'])]
+    detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
     await bot.send_message(group_id, f'Заказ\n'
                                      f'{values}\n'
                                      f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
@@ -431,22 +432,22 @@ async def pre_exit_check(callback: types.CallbackQuery):
 async def ord_back(callback: types.CallbackQuery):
     add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
     add_offer_menu.add(*add_offer_buttons)
-    detail_list = [x + '\n' for x in stack[callback.message.chat.id]['details']]
+    detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[callback.message.chat.id]['details'], 1)]
     get_back_buttons(markup=add_offer_menu, back_command=get_pref(tmp[callback.message.chat.id]), exit_data='pre_exit')
     char = get_param(tmp=stack, message=callback.message)
     await callback.message.edit_text(f'Ваш заказ на авто:\n'
                          f'{char}'
-                         f'Введите название нужной запчасти'
-                         f'и при необходимости описание,'
-                         f'особые пожелания по комплектации,'
-                         f'цвету и т.д. (вводите название только'
-                         f'одной запчасти, если необходимо'
-                         f'несколько запчастей на это авто'
-                         f'нажмите после ввода первой запчасти'
-                         f'"Добавить еще запчасть на это авто",'
-                         f'если больше запчастей добавлять не'
-                         f'нужно нажмите "оформить заказ")\n'
-                         f'Вы уже добавили запчасти:\n'
+                         f'Введите название нужной запчасти '
+                         f'и при необходимости описание, '
+                         f'особые пожелания по комплектации, '
+                         f'цвету и т.д. (вводите название только '
+                         f'одной запчасти, если необходимо '
+                         f'несколько запчастей на это авто '
+                         f'нажмите после ввода первой запчасти '
+                         f'"Добавить еще запчасть на это авто", '
+                         f'если больше запчастей добавлять не '
+                         f'нужно нажмите "оформить заказ")\n '
+                         f'Вы уже добавили запчасти:\n '
                          f'{"".join(detail_list)}',
                          reply_markup=add_offer_menu)
 
