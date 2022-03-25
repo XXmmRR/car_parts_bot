@@ -85,7 +85,8 @@ async def about_bot(callback: types.CallbackQuery):
 # Отлавливаем нажатие кнопки 'Перспективы канала'
 @dp.callback_query_handler(text='channel_future')
 async def bot_future(callback: types.CallbackQuery):
-    await callback.message.answer(channel_future, reply_markup=types.InlineKeyboardMarkup().add(start_back_button))
+    await callback.message.edit_text(channel_future, reply_markup=types.InlineKeyboardMarkup()
+                                  .add(types.InlineKeyboardButton(text='🔙Назад', callback_data='help_about')))
 
 
 # Отлавливаем нажатие кнопки 'Выход'
