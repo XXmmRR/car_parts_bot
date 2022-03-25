@@ -188,7 +188,7 @@ async def get_orders(callback: types.CallbackQuery):
             tmp[callback.message.chat.id].pop('bodies')
         menu = types.InlineKeyboardMarkup(row_width=1)
         bodies = get_steps(stack[callback.message.chat.id]['model'])
-        bodies_text = [types.InlineKeyboardButton(text=x, callback_data=f'body_{x}') for x in get_bodies(bodies)]
+        bodies_text = [types.InlineKeyboardButton(text=x, callback_data=f'body_{x}') for x in get_bodies(bodies) if x]
         menu.add(*bodies_text)
         values = get_values(stack, callback)
         add_skip_button(markup=menu, data='body_None')
@@ -213,7 +213,7 @@ async def get_transmission(callback: types.CallbackQuery):
     tmp[callback.message.chat.id]['bodies'] = callback.data
     transmissions = get_steps(stack[callback.message.chat.id]['model'])
     transmissions_text = [types.InlineKeyboardButton(text=x, callback_data=f'transmission_{x}') for x in
-                          get_transmissiom(transmissions)]
+                          get_transmissiom(transmissions) if x]
     menu.add(*transmissions_text)
     add_skip_button(markup=menu, data='transmission_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
@@ -232,7 +232,7 @@ async def get_engine_type(callback: types.CallbackQuery):
     tmp[callback.message.chat.id]['transmission'] = callback.data
     engine_type = get_steps(stack[callback.message.chat.id]['model'])
     engine_type_text = [types.InlineKeyboardButton(text=x, callback_data=f'engine_{x}') for x in
-                        get_engine(engine_type)]
+                        get_engine(engine_type) if x]
     menu.add(*engine_type_text)
     add_skip_button(markup=menu, data='engine_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
