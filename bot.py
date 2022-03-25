@@ -341,8 +341,6 @@ async def vin_handler(message: types.Message, state: FSMContext):
 async def contact_handler(callback: types.CallbackQuery):
     menu = types.InlineKeyboardMarkup()
     menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data='предложение'))
-    values = get_param(tmp=stack, message=callback.message)
-    detail_list = [x + '\n' for x in stack[callback.message.chat.id]['details']]
     if callback.data.split('_')[1] == 'no':
         await callback.message.edit_text(f'Вы уверены что хотите удалить свой заказ? '
                                       f'и вернуться в главное меню? '
@@ -352,39 +350,43 @@ async def contact_handler(callback: types.CallbackQuery):
     if callback.data.split('_')[1] == 'anon':
         await callback.message.answer('Вы отправили предложение анонимно в группу')
         if callback.message.from_user.username:
-            await callback.message.reply(f"Добро пожаловать, {callback.message.from_user.username}  ! "
+            await callback.message.edit_text(f"Добро пожаловать, {callback.message.from_user.username}  ! "
                                          f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
                                          reply_markup=start_menu)
         else:
-            await callback.message.reply(f"Добро пожаловать, {callback.message.from_user.first_name}  ! "
+            await callback.message.edit_text(f"Добро пожаловать, {callback.message.from_user.first_name}  ! "
                                          f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
                                          reply_markup=start_menu)
-        menu.add(types.InlineKeyboardButton('gbdfgdf', ))
-        await bot.send_message(group_id, f'Заказ\n'
-                                         f'{values}\n'
-                                         f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
     if callback.data.split('_')[1] == 'contact':
-
-        await callback.message.answer('Поделитесь своим контактом')
+        get_contact = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton
+                                                                          ('Отправить свой контакт ☎️',
+                                                                           request_contact=True))
+        await callback.message.delete()
+        await callback.message.answer('Отправьте ваш контакт', reply_markup=get_contact)
+        await callback.answer()
         await PhoneNumber.number.set()
-
-        await bot.send_message(group_id, f'Заказ\n'
-                                         f'{values}\n'
-                                         f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
 
 
 @dp.message_handler(state=PhoneNumber, content_types=['contact'])
 async def get_number(message: types.Message, state: FSMContext):
-    await message.answer('Вы отправили предложение в группу')
+    await message.answer('Вы отправили предложение в группу', reply_markup=types.ReplyKeyboardRemove())
+    menu = types.InlineKeyboardMarkup()
+    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data='предложение'))
     if message.from_user.username:
-        await message.edit_text(f"Добро пожаловать, {message.from_user.username}  ! "
+        await message.reply(f"Добро пожаловать, {message.from_user.username}  ! "
                                      f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
                                      reply_markup=start_menu)
     else:
-        await message.edit_text(f"Добро пожаловать, {message.from_user.first_name}  ! "
+        await message.reply(f"Добро пожаловать, {message.from_user.first_name}  ! "
                                      f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
                                      reply_markup=start_menu)
-    await PhoneNumber.next()
+    await state.finish()
+
+    values = get_param(tmp=stack, message=message)
+    detail_list = [x + '\n' for c, x in enumerate(stack[message.chat.id]['details'])]
+    await bot.send_message(group_id, f'Заказ\n'
+                                     f'{values}\n'
+                                     f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
 
 
 @dp.callback_query_handler(text='None', state='*')
@@ -399,7 +401,6 @@ async def skip_vin(callback: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await callback.answer()
     await DetailFSM.next()
-
     await callback.message.answer('Введите название детали')
 
 
