@@ -428,6 +428,43 @@ async def pre_exit_check(callback: types.CallbackQuery):
     await callback.message.edit_text('Вы так старательно выбирали все данные, вы уверены что хотите удалить свой заказ полностью?', reply_markup=markup)
 
 
+@dp.message_handler(state=FeedBackFSM)
+async def get_feedback(message: types.Message):
+    mark_up = types.InlineKeyboardMarkup()
+    if len(message.text) < 10 or len(message.text) > 200:
+        await message.answer('Ваще сообщение слишком длинное или слишком короткое')
+    else:
+        mark_up.add(types.InlineKeyboardButton(text='Ответить', callback_data=f'answ_{message.from_user.id}'))
+        for i in admins:
+            await bot.send_message(i, f'Сообщение от пользователя @{message.from_user.username}:\n{message.text}',
+                                   reply_markup=mark_up)
+        await message.answer('Ваше сообщение отправлено в поддержку')
+        await FeedBackFSM.next()
+
+
+@dp.callback_query_handler(Text(startswith='answ_'))
+async def feed_back_answer(callback: types.CallbackQuery):
+    answer['id'] = callback.data.split('_')[1]
+    menu = types.InlineKeyboardMarkup()
+    menu.add(types.InlineKeyboardButton(text='Отменить', callback_data='cancel'))
+    await callback.message.answer('Введите свой ответ', reply_markup=menu)
+    await FeedBackAnswer.body.set()
+
+
+@dp.callback_query_handler(text='cancel', state='*')
+async def skip_feedbacl(callback: types.CallbackQuery, state: FSMContext):
+
+    await state.finish()
+    await callback.message.answer('Вы отменили ввод сообщение')
+    await callback.answer()
+
+
+@dp.message_handler(state=FeedBackAnswer)
+async def send_answ_message(message: types.Message, state: FSMContext):
+    await message.answer('Ваше сообщение отправлено')
+    await bot.send_message(answer['id'], f'Сообщение от админа\n{message.text}')
+
+
 @dp.callback_query_handler(text='ord')
 async def ord_back(callback: types.CallbackQuery):
     add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
