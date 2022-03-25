@@ -256,6 +256,7 @@ async def set_engine_volume(callback: types.CallbackQuery):
     add_skip_button(markup=menu, data='volume_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
+    print(menu)
     await callback.message.edit_text(f'Вы выбрали {values} Выберите объем двигателя', reply_markup=menu)
 
 
