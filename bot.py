@@ -151,8 +151,9 @@ async def get_gen(callback: types.CallbackQuery):
     if keyboard_buttons:
         if tmp[callback.message.chat.id].get('gen'):
             tmp[callback.message.chat.id].pop('gen')
+        values = get_values(stack, callback)
         get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
-        await callback.message.edit_text(f'Укажите поколение авто', reply_markup=menu)
+        await callback.message.edit_text(f'Укажите поколение авто {values}', reply_markup=menu)
     else:
         order_menu = types.InlineKeyboardMarkup(row_width=1)
         order_menu.add(*order_menu_buttons)
@@ -167,7 +168,7 @@ async def get_gen(callback: types.CallbackQuery):
 async def get_params(callback: types.CallbackQuery):
     gen = callback.data.split('_')[1]
     tmp[callback.message.chat.id]['gen'] = callback.data
-    stack[callback.message.chat.id]['gen'] = gen
+    stack[callback.message.chat.id]['gen'] = gen.split(' ')[0]
     if tmp[callback.message.chat.id].get('order'):
         tmp[callback.message.chat.id].pop('order')
     order_menu = types.InlineKeyboardMarkup(row_width=1)
@@ -188,7 +189,7 @@ async def get_orders(callback: types.CallbackQuery):
         if tmp[callback.message.chat.id].get('bodies'):
             tmp[callback.message.chat.id].pop('bodies')
         menu = types.InlineKeyboardMarkup(row_width=1)
-        bodies = get_steps(stack[callback.message.chat.id]['model'])
+        bodies = get_steps(stack[callback.message.chat.id]['model'], stack[callback.message.chat.id].get('gen'))
         bodies_text = [types.InlineKeyboardButton(text=x, callback_data=f'body_{x}') for x in get_bodies(bodies) if x]
         menu.add(*bodies_text)
         values = get_values(stack, callback)
@@ -212,7 +213,7 @@ async def get_transmission(callback: types.CallbackQuery):
     if body != 'None':
         stack[callback.message.chat.id]['body'] = body
     tmp[callback.message.chat.id]['bodies'] = callback.data
-    transmissions = get_steps(stack[callback.message.chat.id]['model'])
+    transmissions = get_steps(stack[callback.message.chat.id]['model'], stack[callback.message.chat.id].get('gen'))
     transmissions_text = [types.InlineKeyboardButton(text=x, callback_data=f'transmission_{x}') for x in
                           get_transmissiom(transmissions) if x]
     menu.add(*transmissions_text)
@@ -231,7 +232,7 @@ async def get_engine_type(callback: types.CallbackQuery):
     if transmission != 'None':
         stack[callback.message.chat.id]['transmission'] = transmission
     tmp[callback.message.chat.id]['transmission'] = callback.data
-    engine_type = get_steps(stack[callback.message.chat.id]['model'])
+    engine_type = get_steps(stack[callback.message.chat.id]['model'], stack[callback.message.chat.id].get('gen'))
     engine_type_text = [types.InlineKeyboardButton(text=x, callback_data=f'engine_{x}') for x in
                         get_engine(engine_type) if x]
     menu.add(*engine_type_text)
@@ -250,14 +251,13 @@ async def set_engine_volume(callback: types.CallbackQuery):
     if engine_type != 'None':
         stack[callback.message.chat.id]['engine_type'] = engine_type
     tmp[callback.message.chat.id]['engine_type'] = callback.data
-    engine_volume = get_steps(stack[callback.message.chat.id]['model'])
+    engine_volume = get_steps(stack[callback.message.chat.id]['model'], stack[callback.message.chat.id].get('gen'))
     engine_volume_text = [types.InlineKeyboardButton(text=x, callback_data=f'volume_{x}') for x in
                           get_engine_volume(engine_volume) if x]
     menu.add(*engine_volume_text)
     add_skip_button(markup=menu, data='volume_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
-    print(menu)
     await callback.message.edit_text(f'Вы выбрали {values} Выберите объем двигателя', reply_markup=menu)
 
 
@@ -302,9 +302,9 @@ async def handle_menu(message: types.Message, state: FSMContext):
                              f'нажмите после ввода первой запчасти '
                              f'"Добавить еще запчасть на это авто ",'
                              f'если больше запчастей добавлять не '
-                             f'нужно нажмите "оформить заказ")\n '
+                             f'нужно нажмите "оформить заказ")\n'
                              f'Вы уже добавили запчасти:\n'
-                             f'{"".join(detail_list)}',
+                             f'\n{"".join(detail_list)}',
                              reply_markup=add_offer_menu)
 
     else:
@@ -363,10 +363,26 @@ async def contact_handler(callback: types.CallbackQuery):
         get_contact = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton
                                                                           ('Отправить свой контакт ☎️',
                                                                            request_contact=True))
+        get_contact.add(types.KeyboardButton('❌Отмена'))
         await callback.message.delete()
         await callback.message.answer('Отправьте ваш контакт', reply_markup=get_contact)
         await callback.answer()
         await PhoneNumber.number.set()
+
+
+@dp.message_handler(state=PhoneNumber, content_types=['text'])
+async def cancel(message: types.Message, state: FSMContext):
+    if message.text =='❌Отмена':
+        await state.finish()
+        await message.answer('Вы отменили ввод номера', reply_markup=types.ReplyKeyboardRemove())
+        if message.from_user.username:
+            await message.reply(f"Добро пожаловать, {message.from_user.username}  ! "
+                                f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
+                                reply_markup=start_menu)
+        else:
+            await message.reply(f"Добро пожаловать, {message.from_user.first_name}  ! "
+                                f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
+                                reply_markup=start_menu)
 
 
 @dp.message_handler(state=PhoneNumber, content_types=['contact'])
@@ -439,7 +455,7 @@ async def get_feedback(message: types.Message):
         for i in admins:
             await bot.send_message(i, f'Сообщение от пользователя @{message.from_user.username}:\n{message.text}',
                                    reply_markup=mark_up)
-        await message.answer('Ваше сообщение отправлено в поддержку')
+        await message.answer('Ваш вопрос будет рассмотрен в ближайшее рабочее время')
         await FeedBackFSM.next()
 
 

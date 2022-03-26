@@ -140,19 +140,22 @@ def get_generation_markup(model_data):
         markup = [x for x in pre_markup if x]
     return sorted(list(frozenset(markup)))
 
-def get_steps(model):
+
+def get_steps(model, gen=None):
     session = Session()
     if model[0] in alphabet_buttons_ru_text:
-        steps = session.query(BaseCars).filter(BaseCars.cyrillic_model.like(f'{model}')).all()
+        steps = session.query(BaseCars).filter(BaseCars.cyrillic_model.like(f'{model}'),).all()
     else:
-        steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%')).all()
+        if gen:
+            steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%'), BaseCars.generation.like(f'{gen}%')).all()
+        else:
+            steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%')).all()
     bodies = list(frozenset([x.body_type for x in steps]))
     transmissions = list(frozenset([x.transmission for x in steps]))
     engine_types = list(frozenset([x.engine_type for x in steps]))
     volume = list(frozenset([x.volume for x in steps]))
     session.close()
     return bodies, transmissions, engine_types, volume
-
 
 
 def get_bodies(data):
