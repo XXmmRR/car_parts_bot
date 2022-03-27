@@ -198,7 +198,7 @@ def get_steps(model, gen=None):
     else:
         if gen:
             steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}'), BaseCars.generation.like(f'{gen}')).all()
-        else:1396
+        else:
             steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}')).all()
     bodies = list(frozenset([x.body_type for x in steps]))
     transmissions = list(frozenset([x.transmission for x in steps]))
