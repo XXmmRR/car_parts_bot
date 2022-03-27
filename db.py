@@ -1,4 +1,5 @@
 """Тут будет вся логика связанная с бд"""
+import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -101,9 +102,9 @@ def get_mark_markup(mark_list, letter):
 def get_model_list(mark):
     session = Session()
     if mark[0] in alphabet_buttons_ru_text:
-        models = session.query(BaseCars).filter(BaseCars.cyrillic_mark.like(f'{mark}%')).all()
+        models = session.query(BaseCars).filter(BaseCars.cyrillic_mark.like(f'{mark}')).all()
     else:
-        models = session.query(BaseCars).filter(BaseCars.mark.like(f'{mark}%')).all()
+        models = session.query(BaseCars).filter(BaseCars.mark.like(f'{mark}')).all()
     session.close()
     return models
 
@@ -125,9 +126,9 @@ def create_db():
 def get_generation_list(model):
     session = Session()
     if model[0] in alphabet_buttons_ru_text:
-        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%')).all()
+        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}')).all()
     else:
-        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%')).all()
+        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}')).all()
     session.close()
     return models
 
@@ -141,15 +142,64 @@ def get_generation_markup(model_data):
     return sorted(list(frozenset(markup)))
 
 
-def get_steps(model, gen=None):
+def get_engine_volume(model, gen=None, body_type=None, transmission=None, engine_type=None):
     session = Session()
+    search_condition = []
+    if model:
+        search_condition.append(BaseCars.model.like(model))
+    if gen:
+        search_condition.append(BaseCars.generation.like(gen))
+    if body_type:
+        search_condition.append(BaseCars.body_type.like(body_type))
+    if transmission:
+        search_condition.append(BaseCars.transmission.like(transmission))
+    if engine_type:
+        search_condition.append(BaseCars.engine_type.like(engine_type))
+    where = sqlalchemy.and_(*search_condition)
+    query = session.query(BaseCars).filter(where)
+    return sorted(list(frozenset([x.volume for x in query.all()])))
+
+
+def get_engine_type(model, gen=None, body_type=None, transmission=None):
+    session = Session()
+    search_condition = []
+    if model:
+        search_condition.append(BaseCars.model.like(model))
+    if gen:
+        search_condition.append(BaseCars.generation.like(gen))
+    if body_type:
+        search_condition.append(BaseCars.body_type.like(body_type))
+    if transmission:
+        search_condition.append(BaseCars.transmission.like(transmission))
+    where = sqlalchemy.and_(*search_condition)
+    query = session.query(BaseCars).filter(where)
+    session.close()
+    return sorted(list(frozenset([x.engine_type for x in query.all()])))
+
+
+def get_box(model, gen=None, body_type=None):
+    session = Session()
+    search_condition = []
+    if model:
+        search_condition.append(BaseCars.model.like(model))
+    if gen:
+        search_condition.append(BaseCars.generation.like(gen))
+    if body_type:
+        search_condition.append(BaseCars.body_type.like(body_type))
+    where = sqlalchemy.and_(*search_condition)
+    query = session.query(BaseCars).filter(where)
+    return sorted(list(frozenset([x.transmission for x in query.all()])))
+
+
+def get_steps(model, gen=None):
+    session = Session()1396
     if model[0] in alphabet_buttons_ru_text:
         steps = session.query(BaseCars).filter(BaseCars.cyrillic_model.like(f'{model}'),).all()
     else:
         if gen:
-            steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%'), BaseCars.generation.like(f'{gen}%')).all()
-        else:
-            steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}%')).all()
+            steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}'), BaseCars.generation.like(f'{gen}')).all()
+        else:1396
+            steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}')).all()
     bodies = list(frozenset([x.body_type for x in steps]))
     transmissions = list(frozenset([x.transmission for x in steps]))
     engine_types = list(frozenset([x.engine_type for x in steps]))
@@ -169,9 +219,6 @@ def get_transmissiom(data):
 def get_engine(data):
     return data[2]
 
-
-def get_engine_volume(data):
-    return data[3]
 
 
 def get_param(tmp, message):

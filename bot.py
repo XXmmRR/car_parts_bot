@@ -8,7 +8,7 @@ from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, st
     , get_pref, get_values, add_skip_button
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
-from db import BaseCars, Session
+from db import BaseCars, Session, get_box, get_engine_type
 from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
@@ -189,7 +189,7 @@ async def get_orders(callback: types.CallbackQuery):
         if tmp[callback.message.chat.id].get('bodies'):
             tmp[callback.message.chat.id].pop('bodies')
         menu = types.InlineKeyboardMarkup(row_width=1)
-        bodies = get_steps(stack[callback.message.chat.id]['model'], stack[callback.message.chat.id].get('gen'))
+        bodies = get_steps(stack[callback.message.chat.id].get('model'), stack[callback.message.chat.id].get('gen'))
         bodies_text = [types.InlineKeyboardButton(text=x, callback_data=f'body_{x}') for x in get_bodies(bodies) if x]
         menu.add(*bodies_text)
         values = get_values(stack, callback)
@@ -213,9 +213,10 @@ async def get_transmission(callback: types.CallbackQuery):
     if body != 'None':
         stack[callback.message.chat.id]['body'] = body
     tmp[callback.message.chat.id]['bodies'] = callback.data
-    transmissions = get_steps(stack[callback.message.chat.id]['model'], stack[callback.message.chat.id].get('gen'))
+    transmissions = get_box(model=stack[callback.message.chat.id].get('model'), gen=stack[callback.message.chat.id].get('gen'),
+                            body_type=stack[callback.message.chat.id].get('body'))
     transmissions_text = [types.InlineKeyboardButton(text=x, callback_data=f'transmission_{x}') for x in
-                          get_transmissiom(transmissions) if x]
+                          transmissions if x]
     menu.add(*transmissions_text)
     add_skip_button(markup=menu, data='transmission_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
@@ -224,17 +225,20 @@ async def get_transmission(callback: types.CallbackQuery):
 
 
 @dp.callback_query_handler(Text(startswith='transmission_'))
-async def get_engine_type(callback: types.CallbackQuery):
+async def get_engine_types(callback: types.CallbackQuery):
     if tmp[callback.message.chat.id].get('engine'):
         tmp[callback.message.chat.id].pop('engine')
     transmission = callback.data.split('_')[1]
+    print(transmission)
+    print(stack)
     menu = types.InlineKeyboardMarkup(row_width=1)
     if transmission != 'None':
         stack[callback.message.chat.id]['transmission'] = transmission
     tmp[callback.message.chat.id]['transmission'] = callback.data
-    engine_type = get_steps(stack[callback.message.chat.id]['model'], stack[callback.message.chat.id].get('gen'))
+    engine_type = get_engine_type(model=stack[callback.message.chat.id].get('model'), gen=stack[callback.message.chat.id].get('gen'),
+                                  body_type=stack[callback.message.chat.id].get('body'), transmission=stack[callback.message.chat.id].get('transmission'))
     engine_type_text = [types.InlineKeyboardButton(text=x, callback_data=f'engine_{x}') for x in
-                        get_engine(engine_type) if x]
+                        engine_type if x]
     menu.add(*engine_type_text)
     add_skip_button(markup=menu, data='engine_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
@@ -251,9 +255,13 @@ async def set_engine_volume(callback: types.CallbackQuery):
     if engine_type != 'None':
         stack[callback.message.chat.id]['engine_type'] = engine_type
     tmp[callback.message.chat.id]['engine_type'] = callback.data
-    engine_volume = get_steps(stack[callback.message.chat.id]['model'], stack[callback.message.chat.id].get('gen'))
+    engine_volume = get_engine_volume(model=stack[callback.message.chat.id].get('model'),
+                                      gen=stack[callback.message.chat.id].get('gen'),
+                                      body_type=stack[callback.message.chat.id].get('body'),
+                                      transmission=stack[callback.message.chat.id].get('transmission'),
+                                      engine_type=stack[callback.message.chat.id].get('engine_type'))
     engine_volume_text = [types.InlineKeyboardButton(text=x, callback_data=f'volume_{x}') for x in
-                          get_engine_volume(engine_volume) if x]
+                          engine_volume if x]
     menu.add(*engine_volume_text)
     add_skip_button(markup=menu, data='volume_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
@@ -284,7 +292,7 @@ async def handle_menu(message: types.Message, state: FSMContext):
     add_offer_menu = types.InlineKeyboardMarkup(row_width=1)
     add_offer_menu.add(*add_offer_buttons)
 
-    if len(message.text) > 5:
+    if len(message.text) > 5 and len(message.text) < 201:
 
         await DetailFSM.next()
         stack[message.chat.id]['details'].append(message.text)
@@ -351,11 +359,17 @@ async def contact_handler(callback: types.CallbackQuery):
         await callback.answer()
     if callback.data.split('_')[1] == 'anon':
         await callback.message.answer('Вы отправили предложение анонимно в группу')
-        if callback.message.from_user.username:
+        values = get_param(tmp=stack, message=callback)
+        detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[callback.message.chat.id]['details'], 1)]
+        await bot.send_message(group_id, f'Заказ\n'
+                                         f'{values}\n'
+                                         f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
+
+    if callback.message.from_user.username:
             await callback.message.edit_text(f"Добро пожаловать, {callback.message.from_user.username}  ! "
                                          f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
                                          reply_markup=start_menu)
-        else:
+    else:
             await callback.message.edit_text(f"Добро пожаловать, {callback.message.from_user.first_name}  ! "
                                          f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
                                          reply_markup=start_menu)
