@@ -192,7 +192,7 @@ def get_box(model, gen=None, body_type=None):
 
 
 def get_steps(model, gen=None):
-    session = Session()1396
+    session = Session()
     if model[0] in alphabet_buttons_ru_text:
         steps = session.query(BaseCars).filter(BaseCars.cyrillic_model.like(f'{model}'),).all()
     else:
