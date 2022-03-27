@@ -8,11 +8,11 @@ from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, st
     , get_pref, get_values, add_skip_button
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
-from db import BaseCars, Session, get_box, get_engine_type
+from db import get_box, get_engine_type
 from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
-    get_generation_markup, get_steps, get_bodies, get_transmissiom, get_engine, get_engine_volume, get_param
+    get_generation_markup, get_steps, get_bodies, get_engine_volume, get_param
 
 from config import TOKEN  # импортируем из config.py токен бота
 
@@ -350,7 +350,7 @@ async def vin_handler(message: types.Message, state: FSMContext):
         await message.answer('Введите название детали')
     else:
         menu = types.InlineKeyboardMarkup()
-        menu.add(types.InlineKeyboardButton(text='Отменить', callback_data='cancel'))
+        menu.add(types.InlineKeyboardButton(text='Отменить', callback_data='None'))
         await message.answer('это не похоже на VIN код попробуйте ввести еще раз', reply_markup=menu)
         await VinCodeFSM.next()
 
