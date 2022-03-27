@@ -32,8 +32,10 @@ stack = {}
 # *******************************************************************************************************
 
 
-@dp.message_handler(commands=['start'])
-async def process_start_command(message: types.Message):  # Отлавливаем команду /start
+@dp.message_handler(commands=['start'], state='*')
+async def process_start_command(message: types.Message, state: FSMContext):  # Отлавливаем команду /start
+    if state:
+        await state.finish()
     if message.from_user.username:
         await message.reply(f"Добро пожаловать, {message.from_user.username}  ! "
                             f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
@@ -90,8 +92,11 @@ async def bot_future(callback: types.CallbackQuery):
 
 
 # Отлавливаем нажатие кнопки 'Выход'
-@dp.callback_query_handler(text='exit')
-async def exit_handler(callback: types.CallbackQuery, ):
+@dp.callback_query_handler(text='exit', state='*')
+async def exit_handler(callback: types.CallbackQuery, state:FSMContext):
+    if state:
+        await state.finish()
+        await callback.message.answer('Вы отменили ввод')
     await callback.message.edit_text('Добро пожаловать, car partsbot  ! Я @car_part_bot '
                                      '- удобный бот-по заказу и продаже автомабильных запчастей',
                                      reply_markup=start_menu)
@@ -138,8 +143,10 @@ async def auto_model(callback: types.CallbackQuery):
     await callback.message.edit_text(f'Укажите модель авто', reply_markup=menu)
 
 
-@dp.callback_query_handler(Text(startswith='model_'))
-async def get_gen(callback: types.CallbackQuery):
+@dp.callback_query_handler(Text(startswith='model_'), state='*')
+async def get_gen(callback: types.CallbackQuery, state:FSMContext):
+    if state:
+        await state.finish()
     menu = types.InlineKeyboardMarkup(row_width=1)
     model = callback.data.split('_')[1]
     tmp[callback.message.chat.id]['model'] = callback.data
@@ -158,7 +165,7 @@ async def get_gen(callback: types.CallbackQuery):
         order_menu = types.InlineKeyboardMarkup(row_width=1)
         order_menu.add(*order_menu_buttons)
         values = get_values(stack, callback)
-        get_back_buttons(markup=order_menu, back_command=get_pref(tmp[callback.message.chat.id]))
+        get_back_buttons(markup=order_menu, back_command=get_pref(tmp[callback.message.chat.id]), exit_data='exit')
         await callback.message.edit_text(f'Вы выбрали {values}'
                                          f'Хотите указать дополнительные параметры: тип кузова, тип и объем '
                                          f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
@@ -229,8 +236,6 @@ async def get_engine_types(callback: types.CallbackQuery):
     if tmp[callback.message.chat.id].get('engine'):
         tmp[callback.message.chat.id].pop('engine')
     transmission = callback.data.split('_')[1]
-    print(transmission)
-    print(stack)
     menu = types.InlineKeyboardMarkup(row_width=1)
     if transmission != 'None':
         stack[callback.message.chat.id]['transmission'] = transmission
@@ -246,8 +251,10 @@ async def get_engine_types(callback: types.CallbackQuery):
     await callback.message.edit_text(f'Вы выбрали {values} Выберите тип двигателя', reply_markup=menu)
 
 
-@dp.callback_query_handler(Text(startswith='engine_'))
-async def set_engine_volume(callback: types.CallbackQuery):
+@dp.callback_query_handler(Text(startswith='engine_'), state='*')
+async def set_engine_volume(callback: types.CallbackQuery, state: FSMContext):
+    if state:
+        await state.finish()
     if tmp[callback.message.chat.id].get('volume'):
         tmp[callback.message.chat.id].pop('volume')
     engine_type = callback.data.split('_')[1]
@@ -273,13 +280,12 @@ async def set_engine_volume(callback: types.CallbackQuery):
 async def set_vin_code(callback: types.CallbackQuery):
     mark_up = types.InlineKeyboardMarkup(row_width=1)
     mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='None'))
-    mark_up.row(types.InlineKeyboardButton(text="❌Выход", callback_data='state_exit'),
-                types.InlineKeyboardButton(text='🔙Назад', callback_data='back_vin'))
     engine_volume = callback.data.split('_')[1]
     if engine_volume != "None":
         stack[callback.message.chat.id]['engine_volume'] = engine_volume
     tmp[callback.message.chat.id]['engine_volume'] = callback.data
     values = get_values(stack, callback)
+    get_back_buttons(markup=mark_up, back_command=get_pref(tmp[callback.message.chat.id]))
     await VinCodeFSM.VIN.set()
     await callback.message.edit_text(f'Вы выбрали {values} Введите VIN код вашего авто', reply_markup=mark_up)
 
@@ -343,7 +349,9 @@ async def vin_handler(message: types.Message, state: FSMContext):
         await DetailFSM.next()
         await message.answer('Введите название детали')
     else:
-        await message.answer('это не похоже на VIN код попробуйте ввести еще раз')
+        menu = types.InlineKeyboardMarkup()
+        menu.add(types.InlineKeyboardButton(text='Отменить', callback_data='cancel'))
+        await message.answer('это не похоже на VIN код попробуйте ввести еще раз', reply_markup=menu)
         await VinCodeFSM.next()
 
 
