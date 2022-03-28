@@ -236,8 +236,8 @@ async def get_transmission(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(Text(startswith='transmission_'))
 async def get_engine_types(callback: types.CallbackQuery):
-    if tmp[callback.message.chat.id].get('engine'):
-        tmp[callback.message.chat.id].pop('engine')
+    if tmp[callback.message.chat.id].get('engine_type'):
+        tmp[callback.message.chat.id].pop('engine_type')
     transmission = callback.data.split('_')[1]
     menu = types.InlineKeyboardMarkup(row_width=1)
     if transmission != 'None':
@@ -251,6 +251,7 @@ async def get_engine_types(callback: types.CallbackQuery):
     add_skip_button(markup=menu, data='engine_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
+    print(tmp)
     await callback.message.edit_text(f'Вы выбрали {values} Выберите тип двигателя', reply_markup=menu)
 
 
@@ -258,8 +259,8 @@ async def get_engine_types(callback: types.CallbackQuery):
 async def set_engine_volume(callback: types.CallbackQuery, state: FSMContext):
     if state:
         await state.finish()
-    if tmp[callback.message.chat.id].get('volume'):
-        tmp[callback.message.chat.id].pop('volume')
+    if tmp[callback.message.chat.id].get('engine_volume'):
+        tmp[callback.message.chat.id].pop('engine_volume')
     engine_type = callback.data.split('_')[1]
     menu = types.InlineKeyboardMarkup(row_width=1)
     if engine_type != 'None':
@@ -276,11 +277,14 @@ async def set_engine_volume(callback: types.CallbackQuery, state: FSMContext):
     add_skip_button(markup=menu, data='volume_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
+    print(tmp)
     await callback.message.edit_text(f'Вы выбрали {values} Выберите объем двигателя', reply_markup=menu)
 
 
 @dp.callback_query_handler(Text(startswith='volume_'))
 async def set_vin_code(callback: types.CallbackQuery):
+    if tmp[callback.message.chat.id].get('engine_volume'):
+        tmp[callback].pop('engine_volume')
     mark_up = types.InlineKeyboardMarkup(row_width=1)
     mark_up.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data='None'))
     engine_volume = callback.data.split('_')[1]
@@ -289,6 +293,7 @@ async def set_vin_code(callback: types.CallbackQuery):
     tmp[callback.message.chat.id]['engine_volume'] = callback.data
     values = get_values(stack, callback)
     get_back_buttons(markup=mark_up, back_command=get_pref(tmp[callback.message.chat.id]))
+    print(tmp)
     await VinCodeFSM.VIN.set()
     await callback.message.edit_text(f'Вы выбрали {values} Введите VIN код вашего авто', reply_markup=mark_up)
 
