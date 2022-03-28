@@ -3,9 +3,9 @@ from keyboard import how_to_buy, how_to_sell, info_bot, channel_future
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
-from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, start_back_button, alphabet_menu, \
-    order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline, alphabet_menu_ru, get_back_buttons\
-    , get_pref, get_values, add_skip_button
+from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, alphabet_menu, \
+    order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline, alphabet_menu_ru, get_back_buttons, \
+     get_pref, get_values, add_skip_button
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import get_box, get_engine_type
@@ -144,7 +144,7 @@ async def auto_model(callback: types.CallbackQuery):
 
 
 @dp.callback_query_handler(Text(startswith='model_'), state='*')
-async def get_gen(callback: types.CallbackQuery, state:FSMContext):
+async def get_gen(callback: types.CallbackQuery, state: FSMContext):
     if state:
         await state.finish()
     menu = types.InlineKeyboardMarkup(row_width=1)
@@ -154,7 +154,7 @@ async def get_gen(callback: types.CallbackQuery, state:FSMContext):
     generations = get_generation_list(model)
     keyboard_buttons = []
     for i in get_generation_markup(generations):
-        text = i + ' ' +get_gen_year(mark=stack[callback.message.chat.id]['mark'], model=stack[callback.message.chat.id]['model'],
+        text = i + ' ' + get_gen_year(mark=stack[callback.message.chat.id]['mark'], model=stack[callback.message.chat.id]['model'],
                      gen=i)
         keyboard_buttons.append(types.InlineKeyboardButton(text=text, callback_data=f'gen_{i}'))
     menu.add(*keyboard_buttons)
@@ -171,7 +171,6 @@ async def get_gen(callback: types.CallbackQuery, state:FSMContext):
         order_menu.add(*order_menu_buttons)
         values = get_values(stack, callback)
         get_back_buttons(markup=order_menu, back_command=get_pref(tmp[callback.message.chat.id]), exit_data='exit')
-        print(tmp)
         await callback.message.edit_text(f'Вы выбрали {values}'
                                          f'Хотите указать дополнительные параметры: тип кузова, тип и объем '
                                          f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)

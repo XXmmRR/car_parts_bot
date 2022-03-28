@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime
 from keyboard import alphabet_buttons_ru_text
+from sqlalchemy import asc, desc
 
 import datetime
 
