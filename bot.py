@@ -165,10 +165,13 @@ async def get_gen(callback: types.CallbackQuery, state:FSMContext):
         get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
         await callback.message.edit_text(f'Укажите поколение авто {values}', reply_markup=menu)
     else:
+        if tmp[callback.message.chat.id].get('bodies'):
+            tmp[callback.message.chat.id].pop('bodies')
         order_menu = types.InlineKeyboardMarkup(row_width=1)
         order_menu.add(*order_menu_buttons)
         values = get_values(stack, callback)
         get_back_buttons(markup=order_menu, back_command=get_pref(tmp[callback.message.chat.id]), exit_data='exit')
+        print(tmp)
         await callback.message.edit_text(f'Вы выбрали {values}'
                                          f'Хотите указать дополнительные параметры: тип кузова, тип и объем '
                                          f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
@@ -185,6 +188,8 @@ async def get_params(callback: types.CallbackQuery):
     order_menu.add(*order_menu_buttons)
     values = get_values(stack, callback)
     get_back_buttons(markup=order_menu, back_command=get_pref(tmp[callback.message.chat.id]))
+    print(tmp)
+
     await callback.message.edit_text(f'Вы выбрали {values}'
                                      f'Хотите указать дополнительные параметры: тип кузова, тип и объем '
                                      f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
@@ -205,6 +210,8 @@ async def get_orders(callback: types.CallbackQuery):
         values = get_values(stack, callback)
         add_skip_button(markup=menu, data='body_None')
         get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
+        if tmp[callback.message.chat.id].get('order'):
+            tmp[callback.message.chat.id].pop('order')
         await callback.message.edit_text(f'Вы выбрали {values} Выберите тип кузова', reply_markup=menu)
     elif order == 'skip':
         if tmp[callback.message.chat.id].get('bodies'):
@@ -251,7 +258,6 @@ async def get_engine_types(callback: types.CallbackQuery):
     add_skip_button(markup=menu, data='engine_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
-    print(tmp)
     await callback.message.edit_text(f'Вы выбрали {values} Выберите тип двигателя', reply_markup=menu)
 
 
@@ -277,7 +283,6 @@ async def set_engine_volume(callback: types.CallbackQuery, state: FSMContext):
     add_skip_button(markup=menu, data='volume_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
-    print(tmp)
     await callback.message.edit_text(f'Вы выбрали {values} Выберите объем двигателя', reply_markup=menu)
 
 
@@ -293,7 +298,6 @@ async def set_vin_code(callback: types.CallbackQuery):
     tmp[callback.message.chat.id]['engine_volume'] = callback.data
     values = get_values(stack, callback)
     get_back_buttons(markup=mark_up, back_command=get_pref(tmp[callback.message.chat.id]))
-    print(tmp)
     await VinCodeFSM.VIN.set()
     await callback.message.edit_text(f'Вы выбрали {values} Введите VIN код вашего авто', reply_markup=mark_up)
 
