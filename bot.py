@@ -12,7 +12,7 @@ from db import get_box, get_engine_type
 from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
-    get_generation_markup, get_steps, get_bodies, get_engine_volume, get_param
+    get_generation_markup, get_steps, get_bodies, get_engine_volume, get_param, get_gen_year
 
 from config import TOKEN  # импортируем из config.py токен бота
 
@@ -152,8 +152,11 @@ async def get_gen(callback: types.CallbackQuery, state:FSMContext):
     tmp[callback.message.chat.id]['model'] = callback.data
     stack[callback.message.chat.id]['model'] = model
     generations = get_generation_list(model)
-    keyboard_buttons = [types.InlineKeyboardButton(text=x, callback_data=f'gen_{x}') for x in
-                        get_generation_markup(generations) if x]
+    keyboard_buttons = []
+    for i in get_generation_markup(generations):
+        text = i + ' ' +get_gen_year(mark=stack[callback.message.chat.id]['mark'], model=stack[callback.message.chat.id]['model'],
+                     gen=i)
+        keyboard_buttons.append(types.InlineKeyboardButton(text=text, callback_data=f'gen_{i}'))
     menu.add(*keyboard_buttons)
     if keyboard_buttons:
         if tmp[callback.message.chat.id].get('gen'):
@@ -175,7 +178,7 @@ async def get_gen(callback: types.CallbackQuery, state:FSMContext):
 async def get_params(callback: types.CallbackQuery):
     gen = callback.data.split('_')[1]
     tmp[callback.message.chat.id]['gen'] = callback.data
-    stack[callback.message.chat.id]['gen'] = gen.split(' ')[0]
+    stack[callback.message.chat.id]['gen'] = gen
     if tmp[callback.message.chat.id].get('order'):
         tmp[callback.message.chat.id].pop('order')
     order_menu = types.InlineKeyboardMarkup(row_width=1)

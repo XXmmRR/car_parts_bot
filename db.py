@@ -133,12 +133,16 @@ def get_generation_list(model):
     return models
 
 
+def get_gen_year(mark, model, gen):
+    session = Session()
+    pre_year = session.query(BaseCars).filter(BaseCars.model.like(model), BaseCars.mark.like(mark), BaseCars.generation.like(gen)).all()
+    year = [str(x.year_from) + '-' + str(x.year_to) for x in pre_year if x]
+    return sorted(list(frozenset(year)))[0]
+
+
 def get_generation_markup(model_data):
-    try:
-        markup = [x.generation + ' ' + str(x.year_from) + "-" + str(x.year_to) for x in model_data]
-    except:
-        pre_markup = [x.generation for x in model_data if x]
-        markup = [x for x in pre_markup if x]
+    pre_markup = [x.generation for x in model_data if x]
+    markup = [x for x in pre_markup if x]
     return sorted(list(frozenset(markup)))
 
 
@@ -218,7 +222,6 @@ def get_transmissiom(data):
 
 def get_engine(data):
     return data[2]
-
 
 
 def get_param(tmp, message):
