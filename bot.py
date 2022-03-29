@@ -13,6 +13,7 @@ from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
     get_generation_markup, get_steps, get_bodies, get_engine_volume, get_param, get_gen_year
+from paginate_sqlalchemy import SqlalchemyOrmPage
 
 from config import TOKEN  # импортируем из config.py токен бота
 
@@ -128,6 +129,33 @@ async def auto_mark(callback: types.CallbackQuery):
     await callback.message.edit_text(f'Укажите Марку авто', reply_markup=menu)
 
 
+@dp.callback_query_handler(text='next')
+async def next_mode(callback: types.CallbackQuery):
+    menu = types.InlineKeyboardMarkup(row_width=2)
+    mark = stack[callback.message.chat.id]['mark']
+    models_list = get_model_list(mark)
+    models = get_model_markup(models_list, mark)
+    keyboard_buttons = [types.InlineKeyboardButton(text=x, callback_data=f'model_{x}') for x in models[97:]]
+    menu.add(*keyboard_buttons)
+    menu.row(types.InlineKeyboardButton(text='⏮', callback_data='prev'))
+    get_back_buttons(markup=menu, back_command=tmp[callback.message.chat.id]['letter'])
+    await callback.message.edit_text(f'Укажите модель авто', reply_markup=menu)
+
+
+@dp.callback_query_handler(text='prev')
+async def prev_model(callback: types.CallbackQuery):
+    menu = types.InlineKeyboardMarkup(row_width=2)
+    mark = stack[callback.message.chat.id]['mark']
+    models_list = get_model_list(mark)
+    models = get_model_markup(models_list, mark)
+    keyboard_buttons = [types.InlineKeyboardButton(text=x, callback_data=f'model_{x}') for x in models[:97]]
+    menu.add(*keyboard_buttons)
+    if models[97:]:
+        menu.row(types.InlineKeyboardButton(text='⏩', callback_data='next'))
+    get_back_buttons(markup=menu, back_command=tmp[callback.message.chat.id]['letter'])
+    await callback.message.edit_text(f'Укажите модель авто', reply_markup=menu)
+
+
 @dp.callback_query_handler(Text(startswith='mark_'))
 async def auto_model(callback: types.CallbackQuery):
     menu = types.InlineKeyboardMarkup(row_width=2)
@@ -137,8 +165,12 @@ async def auto_model(callback: types.CallbackQuery):
     tmp[callback.message.chat.id]['mark'] = callback.data
     models_list = get_model_list(mark)
     models = get_model_markup(models_list, mark)
-    keyboard_buttons = [types.InlineKeyboardButton(text=x, callback_data=f'model_{x}') for x in models]
+    print(models[98:])
+    keyboard_buttons = [types.InlineKeyboardButton(text=x, callback_data=f'model_{x}') for x in models[:97]]
     menu.add(*keyboard_buttons)
+    if models[97:]:
+        menu.row(types.InlineKeyboardButton(text='⏩', callback_data='next'))
+
     get_back_buttons(markup=menu, back_command=tmp[callback.message.chat.id]['letter'])
     await callback.message.edit_text(f'Укажите модель авто', reply_markup=menu)
 
