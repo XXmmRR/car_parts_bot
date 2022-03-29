@@ -468,6 +468,8 @@ async def cancel(message: types.Message, state: FSMContext):
 async def get_number(message: types.Message, state: FSMContext):
     await message.answer('Вы отправили предложение в группу', reply_markup=types.ReplyKeyboardRemove())
     menu = types.InlineKeyboardMarkup()
+    print(message)
+    await message.answer(message.text)
     menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data='предложение'))
     if message.from_user.username:
         await message.reply(f"Добро пожаловать, {message.from_user.username}  ! "
@@ -586,7 +588,7 @@ async def ord_back(callback: types.CallbackQuery):
                          reply_markup=add_offer_menu)
 
 # Конец блока заказа
- #********************************************************************************************************************
+# ********************************************************************************************************************
 
 
 if __name__ == '__main__':

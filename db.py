@@ -81,6 +81,53 @@ class BaseCars(Base):
     fuel_tank_capacity = Column(Integer, nullable=True)
 
 
+class Customer(Base):
+    __tablename__ = 'customer'
+    id = Column(Integer, primary_key=True)
+    chat_id = Column(Integer, nullable=True)
+    username = Column(String(60), nullable=True, name='Ник')
+    phone = Column(String(60), nullable=True, name='Телефон')
+    seller = Column(Integer, nullable=True, name='Продавец', default=0)
+    buys = Column(Integer, nullable=True, name='Покупатель', default=0)
+    orders = relationship("Order", backref='customer')
+
+
+class Order(Base):
+    __tablename__ = 'order'
+    id = Column(Integer, primary_key=True, name='id')
+    mark = Column(String(50), nullable=True, name='Марка')
+    generation = Column(String(60), nullable=True, name='Поколение')
+    body_type = Column(String(50), nullable=True, name='Тип кузова')
+    transmission = Column(String(50), nullable=True, name='КПП')
+    engine_type = Column(String(50), nullable=True, name='Бензин')
+    VIN = Column(String(20), nullable=True, name='VIN')
+    customer_id = Column(Integer, ForeignKey('customer.id'), name='Имя клиента')
+    buy_status = Column(Boolean, nullable=True, name='Статус')
+    status = Column(Boolean, nullable=True, name='Статус покупки', default=None)
+    created_date = Column(DateTime, default=datetime.datetime.utcnow, name='Дата и время заказа')
+    detail = relationship("Detail", backref='order')
+
+
+class Detail(Base):
+    __tablename__ = 'detail'
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('order.id'))
+    number = Column(Integer, nullable=True, name='Номер запчасти')
+    detail = Column(String(200), nullable=True, name='Название заказа')
+    detail_status = Column(Boolean, nullable=True, default=True, name='Статус запчасти')
+
+
+class Offers(Base):
+    __tablename__ = 'offer'
+    element_id = Column(Integer, primary_key=True)
+    detail_numer = Column(Integer, nullable=True)
+    detail = Column(String(200), nullable=True, name='Название запчасти')
+    price = Column(Integer, nullable=True)
+    seller_comment = Column(String(200), name='Комментарий продавца')
+    seller_id = Column(String(150), name='ID продавца')
+    get_phone = Column(Boolean, name='Номер запрашивался', default=False)
+
+
 def get_mark_list(letter):
     session = Session()
     if letter in alphabet_buttons_ru_text:
@@ -244,3 +291,7 @@ def get_param(tmp, message):
             .replace('gen', 'Поколение').replace('engine_volume', 'Обьем двигателя')
 
     return parameters
+
+
+if __name__ == '__main__':
+    create_db()
