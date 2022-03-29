@@ -13,7 +13,6 @@ from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
     get_generation_markup, get_steps, get_bodies, get_engine_volume, get_param, get_gen_year
-from paginate_sqlalchemy import SqlalchemyOrmPage
 
 from config import TOKEN  # импортируем из config.py токен бота
 
@@ -183,7 +182,7 @@ async def get_gen(callback: types.CallbackQuery, state: FSMContext):
     model = callback.data.split('_')[1]
     tmp[callback.message.chat.id]['model'] = callback.data
     stack[callback.message.chat.id]['model'] = model
-    generations = get_generation_list(model)
+    generations = get_generation_list(model=model, mark=stack[callback.message.chat.id].get('mark'))
     keyboard_buttons = []
     for i in get_generation_markup(generations):
         text = i + ' ' + get_gen_year(mark=stack[callback.message.chat.id]['mark'], model=stack[callback.message.chat.id]['model'],
@@ -261,7 +260,9 @@ async def get_transmission(callback: types.CallbackQuery):
     if body != 'None':
         stack[callback.message.chat.id]['body'] = body
     tmp[callback.message.chat.id]['bodies'] = callback.data
-    transmissions = get_box(model=stack[callback.message.chat.id].get('model'), gen=stack[callback.message.chat.id].get('gen'),
+    transmissions = get_box(mark=stack[callback.message.chat.id].get('mark'),
+                            model=stack[callback.message.chat.id].get('model'),
+                            gen=stack[callback.message.chat.id].get('gen'),
                             body_type=stack[callback.message.chat.id].get('body'))
     transmissions_text = [types.InlineKeyboardButton(text=x, callback_data=f'transmission_{x}') for x in
                           transmissions if x]
@@ -281,8 +282,11 @@ async def get_engine_types(callback: types.CallbackQuery):
     if transmission != 'None':
         stack[callback.message.chat.id]['transmission'] = transmission
     tmp[callback.message.chat.id]['transmission'] = callback.data
-    engine_type = get_engine_type(model=stack[callback.message.chat.id].get('model'), gen=stack[callback.message.chat.id].get('gen'),
-                                  body_type=stack[callback.message.chat.id].get('body'), transmission=stack[callback.message.chat.id].get('transmission'))
+    engine_type = get_engine_type(mark=stack[callback.message.chat.id].get('mark'),
+                                  model=stack[callback.message.chat.id].get('model'),
+                                  gen=stack[callback.message.chat.id].get('gen'),
+                                  body_type=stack[callback.message.chat.id].get('body'),
+                                  transmission=stack[callback.message.chat.id].get('transmission'))
     engine_type_text = [types.InlineKeyboardButton(text=x, callback_data=f'engine_{x}') for x in
                         engine_type if x]
     menu.add(*engine_type_text)

@@ -123,12 +123,12 @@ def create_db():
     session.commit()
 
 
-def get_generation_list(model):
+def get_generation_list(mark, model):
     session = Session()
     if model[0] in alphabet_buttons_ru_text:
         models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}')).all()
     else:
-        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}')).all()
+        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}'), BaseCars.mark.like(mark)).all()
     session.close()
     return models
 
@@ -164,9 +164,11 @@ def get_engine_volume(model, gen=None, body_type=None, transmission=None, engine
     return sorted(list(frozenset([x.volume for x in query.all()])))
 
 
-def get_engine_type(model, gen=None, body_type=None, transmission=None):
+def get_engine_type(mark, model, gen=None, body_type=None, transmission=None):
     session = Session()
     search_condition = []
+    if mark:
+        search_condition.append(BaseCars.mark.like(mark))
     if model:
         search_condition.append(BaseCars.model.like(model))
     if gen:
@@ -181,9 +183,11 @@ def get_engine_type(model, gen=None, body_type=None, transmission=None):
     return sorted(list(frozenset([x.engine_type for x in query.all()])))
 
 
-def get_box(model, gen=None, body_type=None):
+def get_box(mark, model, gen=None, body_type=None):
     session = Session()
     search_condition = []
+    if mark:
+        search_condition.append(BaseCars.mark.like(model))
     if model:
         search_condition.append(BaseCars.model.like(model))
     if gen:
