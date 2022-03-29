@@ -12,7 +12,7 @@ from db import get_box, get_engine_type
 from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
-    get_generation_markup, get_steps, get_bodies, get_engine_volume, get_param, get_gen_year
+    get_generation_markup, get_steps, get_bodies, get_engine_volume, get_param, get_gen_year, get_all_cars, alphabet_buttons_ru_text
 
 from config import TOKEN  # импортируем из config.py токен бота
 
@@ -104,13 +104,22 @@ async def exit_handler(callback: types.CallbackQuery, state:FSMContext):
 
 @dp.callback_query_handler(text='buy_car_part')
 async def get_alphabet_menu(callback: types.CallbackQuery):
+    tmp[callback.message.chat.id] = {}
+
     await callback.message.answer('Выберите первую букву марки авто', reply_markup=alphabet_menu)
     await callback.answer()
 
 
 @dp.callback_query_handler(text='buy_car_part_ru')
 async def buy_part(callback: types.CallbackQuery):
-    await callback.message.edit_text('Выберите первую букву марки авто', reply_markup=alphabet_menu_ru)
+    menu = types.InlineKeyboardMarkup()
+    tmp[callback.message.chat.id]['letter'] = callback.data
+    russian_cars = get_all_cars()
+    L = sorted(list(frozenset([x.mark for x in russian_cars if x.mark[0] in alphabet_buttons_ru_text])))
+    ru_cars = [types.InlineKeyboardButton(text=x, callback_data=f'mark_{x}') for x in L]
+    menu.add(*ru_cars)
+    get_back_buttons(markup=menu, back_command="buy_car_part")
+    await callback.message.edit_text('Выберите марку авто', reply_markup=menu)
     await callback.answer()
 
 
@@ -575,6 +584,10 @@ async def ord_back(callback: types.CallbackQuery):
                          f'Вы уже добавили запчасти:\n '
                          f'{"".join(detail_list)}',
                          reply_markup=add_offer_menu)
+
+# Конец блока заказа
+ #********************************************************************************************************************
+
 
 if __name__ == '__main__':
     # Запускаем бота

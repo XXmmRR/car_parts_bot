@@ -216,6 +216,10 @@ def get_steps(model, gen=None):
     return bodies, transmissions, engine_types, volume
 
 
+def get_all_cars():
+    session = Session()
+    return session.query(BaseCars).all()
+
 def get_bodies(data):
     return data[0]
 
