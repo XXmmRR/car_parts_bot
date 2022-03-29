@@ -187,7 +187,7 @@ def get_box(mark, model, gen=None, body_type=None):
     session = Session()
     search_condition = []
     if mark:
-        search_condition.append(BaseCars.mark.like(model))
+        search_condition.append(BaseCars.mark.like(mark))
     if model:
         search_condition.append(BaseCars.model.like(model))
     if gen:

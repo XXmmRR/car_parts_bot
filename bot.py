@@ -5,7 +5,7 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, alphabet_menu, \
     order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline, alphabet_menu_ru, get_back_buttons, \
-     get_pref, get_values, add_skip_button
+     get_pref, get_values, add_skip_button, get_values_text
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import get_box, get_engine_type
@@ -266,6 +266,7 @@ async def get_transmission(callback: types.CallbackQuery):
                             body_type=stack[callback.message.chat.id].get('body'))
     transmissions_text = [types.InlineKeyboardButton(text=x, callback_data=f'transmission_{x}') for x in
                           transmissions if x]
+    print(transmissions_text, transmissions)
     menu.add(*transmissions_text)
     add_skip_button(markup=menu, data='transmission_None')
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
@@ -353,8 +354,8 @@ async def handle_menu(message: types.Message, state: FSMContext):
         get_back_buttons(markup=add_offer_menu, back_command=get_pref(tmp[message.chat.id]), exit_data='pre_exit')
         char = get_param(tmp=stack, message=message)
         await message.answer(f'Ваш заказ на авто:\n'
-                             f'{char}'
-                             f'Введите название нужной запчасти '
+                             f'{char}\n')
+        await message.answer(f'Введите название нужной запчасти '
                              f'и при необходимости описание, '
                              f'особые пожелания по комплектации, '
                              f'цвету и т.д. (вводите название только '
@@ -414,20 +415,20 @@ async def contact_handler(callback: types.CallbackQuery):
         await callback.answer()
     if callback.data.split('_')[1] == 'anon':
         await callback.message.answer('Вы отправили предложение анонимно в группу')
-        values = get_param(tmp=stack, message=callback)
+        values = get_param(tmp=stack, message=callback.message)
         detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[callback.message.chat.id]['details'], 1)]
         await bot.send_message(group_id, f'Заказ\n'
                                          f'{values}\n'
                                          f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
 
-    if callback.message.from_user.username:
-            await callback.message.edit_text(f"Добро пожаловать, {callback.message.from_user.username}  ! "
-                                         f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
-                                         reply_markup=start_menu)
-    else:
-            await callback.message.edit_text(f"Добро пожаловать, {callback.message.from_user.first_name}  ! "
-                                         f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
-                                         reply_markup=start_menu)
+        if callback.message.from_user.username:
+                await callback.message.edit_text(f"Добро пожаловать, {callback.message.from_user.username}  ! "
+                                             f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
+                                             reply_markup=start_menu)
+        else:
+                await callback.message.edit_text(f"Добро пожаловать, {callback.message.from_user.first_name}  ! "
+                                             f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
+                                             reply_markup=start_menu)
     if callback.data.split('_')[1] == 'contact':
         get_contact = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton
                                                                           ('Отправить свой контакт ☎️',
@@ -444,14 +445,14 @@ async def cancel(message: types.Message, state: FSMContext):
     if message.text =='❌Отмена':
         await state.finish()
         await message.answer('Вы отменили ввод номера', reply_markup=types.ReplyKeyboardRemove())
-        if message.from_user.username:
-            await message.reply(f"Добро пожаловать, {message.from_user.username}  ! "
-                                f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
-                                reply_markup=start_menu)
-        else:
-            await message.reply(f"Добро пожаловать, {message.from_user.first_name}  ! "
-                                f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
-                                reply_markup=start_menu)
+        value = get_values_text(stack, message)
+        detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
+        await message.answer(f'Спасибо за Ваш заказ! '
+                                         f'{value}\n'
+                                         f'{" ".join(detail_list)} '
+                                         f'чтобы получать предложения от '
+                                         f'продавцов нажмите "поделиться '
+                                         f'контактом"', reply_markup=send_menu)
 
 
 @dp.message_handler(state=PhoneNumber, content_types=['contact'])
@@ -558,8 +559,9 @@ async def ord_back(callback: types.CallbackQuery):
     detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[callback.message.chat.id]['details'], 1)]
     get_back_buttons(markup=add_offer_menu, back_command=get_pref(tmp[callback.message.chat.id]), exit_data='pre_exit')
     char = get_param(tmp=stack, message=callback.message)
-    await callback.message.edit_text(f'Ваш заказ на авто:\n'
-                         f'{char}'
+    await callback.message.answer(f'Ваш заказ на авто:\n'
+                                    f'{char}')
+    await callback.message.answer(
                          f'Введите название нужной запчасти '
                          f'и при необходимости описание, '
                          f'особые пожелания по комплектации, '

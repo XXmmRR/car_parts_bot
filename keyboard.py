@@ -132,6 +132,9 @@ def get_back_buttons(markup, back_command, exit_data='exit', exit_text ='❌Вы
     markup.row(types.InlineKeyboardButton(text=back_text, callback_data=f'{back_command}'),
               types.InlineKeyboardButton(text=exit_text, callback_data=exit_data))
 
+def get_values_text(tmp, message):
+    return ''.join([str(x) + ' ' for x in tmp[message.chat.id].values() if x and not isinstance(x, list)])
+
 
 def get_values(tmp, sec_dict):
     return ''.join([str(x) + ' ' for x in tmp[sec_dict.message.chat.id].values() if x and not isinstance(x, list)])
