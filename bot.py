@@ -210,6 +210,7 @@ async def get_gen(callback: types.CallbackQuery, state: FSMContext):
                                       model=stack[callback.message.chat.id]['model'],
                                       gen=i)
         keyboard_buttons.append(types.InlineKeyboardButton(text=text, callback_data=f'gen_{i}'))
+
     menu.add(*keyboard_buttons)
     if keyboard_buttons:
         if tmp[callback.message.chat.id].get('gen'):

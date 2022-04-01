@@ -4,7 +4,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime
-from keyboard import alphabet_buttons_ru_text
 
 import datetime
 
@@ -171,7 +170,8 @@ def string_sort(x):
 
 def get_gen_year(mark, model, gen):
     session = Session()
-    pre_year = session.query(BaseCars).filter(BaseCars.model.like(model), BaseCars.mark.like(mark), BaseCars.generation.like(gen)).all()
+    pre_year = session.query(BaseCars).filter(BaseCars.model.like(model), BaseCars.mark.like(mark),
+                                              BaseCars.generation.like(gen)).all()
     year = [str(x.year_from) + '-' + str(x.year_to) for x in pre_year if x]
     return sorted(list(frozenset(year)))[0]
 
@@ -179,7 +179,7 @@ def get_gen_year(mark, model, gen):
 def get_generation_markup(model_data):
     pre_markup = [x.generation for x in model_data if x]
     markup = [x for x in pre_markup if x]
-    return sorted(list(frozenset(markup)))
+    return sorted(list(frozenset(markup)), key=lambda x: x[:-8])
 
 
 def get_engine_volume(model, gen=None, body_type=None, transmission=None, engine_type=None):
