@@ -130,38 +130,26 @@ class Offers(Base):
 
 def get_mark_list(letter):
     session = Session()
-    if letter in alphabet_buttons_ru_text:
-        mark = session.query(BaseCars).filter(BaseCars.cyrillic_mark.like(f'{letter}%')).all()
-    else:
-        mark = session.query(BaseCars).filter(BaseCars.mark.like(f'{letter}%')).all()
+    mark = session.query(BaseCars).filter(BaseCars.mark.like(f'{letter}%')).all()
     session.close()
     return mark
 
 
 def get_mark_markup(mark_list, letter):
-    if letter in alphabet_buttons_ru_text:
-        markup = [x.cyrillic_mark for x in mark_list]
-    else:
-        markup = [x.mark for x in mark_list]
+    markup = [x.mark for x in mark_list]
     return sorted(list(frozenset(markup)))
 
 
 def get_model_list(mark):
     session = Session()
-    if mark[0] in alphabet_buttons_ru_text:
-        models = session.query(BaseCars).filter(BaseCars.cyrillic_mark.like(f'{mark}')).all()
-    else:
-        models = session.query(BaseCars).filter(BaseCars.mark.like(f'{mark}')).all()
+    models = session.query(BaseCars).filter(BaseCars.mark.like(f'{mark}')).all()
     session.close()
     return models
 
 
 def get_model_markup(model_list, model):
-    if model[0] in alphabet_buttons_ru_text:
-        markup = [x.cyrillic_model for x in model_list]
-    else:
-        markup = [x.model for x in model_list]
-    return sorted(frozenset(markup))
+    markup = [x.model for x in model_list]
+    return string_sort(frozenset(markup))
 
 
 def create_db():
@@ -172,12 +160,13 @@ def create_db():
 
 def get_generation_list(mark, model):
     session = Session()
-    if model[0] in alphabet_buttons_ru_text:
-        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}')).all()
-    else:
-        models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}'), BaseCars.mark.like(mark)).all()
+    models = session.query(BaseCars).filter(BaseCars.model.like(f'{model}'), BaseCars.mark.like(mark)).all()
     session.close()
     return models
+
+
+def string_sort(x):
+    return sorted(list(x), key=lambda x: x.lower())
 
 
 def get_gen_year(mark, model, gen):
@@ -246,37 +235,27 @@ def get_box(mark, model, gen=None, body_type=None):
     return sorted(list(frozenset([x.transmission for x in query.all()])))
 
 
-def get_steps(model, gen=None):
+def get_steps(mark, model, gen=None):
     session = Session()
-    if model[0] in alphabet_buttons_ru_text:
-        steps = session.query(BaseCars).filter(BaseCars.cyrillic_model.like(f'{model}'),).all()
-    else:
-        if gen:
-            steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}'), BaseCars.generation.like(f'{gen}')).all()
-        else:
-            steps = session.query(BaseCars).filter(BaseCars.model.like(f'{model}')).all()
-    bodies = list(frozenset([x.body_type for x in steps]))
-    transmissions = list(frozenset([x.transmission for x in steps]))
-    engine_types = list(frozenset([x.engine_type for x in steps]))
-    volume = list(frozenset([x.volume for x in steps]))
+    search_condition = []
+    if mark:
+        search_condition.append(BaseCars.mark.like(mark))
+    if model:
+        search_condition.append(BaseCars.model.like(model))
+    if gen:
+        search_condition.append(BaseCars.generation.like(gen))
+    where = sqlalchemy.and_(*search_condition)
+    query = session.query(BaseCars).filter(where)
+    print(query.all())
+    bodies = sorted(list(frozenset([x.body_type for x in query.all()])))
+    print(bodies)
     session.close()
-    return bodies, transmissions, engine_types, volume
+    return bodies
 
 
 def get_all_cars():
     session = Session()
     return session.query(BaseCars).all()
-
-def get_bodies(data):
-    return data[0]
-
-
-def get_transmissiom(data):
-    return data[1]
-
-
-def get_engine(data):
-    return data[2]
 
 
 def get_param(tmp, message):

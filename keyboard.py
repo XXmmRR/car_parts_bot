@@ -132,6 +132,7 @@ def get_back_buttons(markup, back_command, exit_data='exit', exit_text ='❌Вы
     markup.row(types.InlineKeyboardButton(text=back_text, callback_data=f'{back_command}'),
               types.InlineKeyboardButton(text=exit_text, callback_data=exit_data))
 
+
 def get_values_text(tmp, message):
     return ''.join([str(x) + ' ' for x in tmp[message.chat.id].values() if x and not isinstance(x, list)])
 
@@ -142,3 +143,12 @@ def get_values(tmp, sec_dict):
 
 def add_skip_button(markup, data):
     markup.add(types.InlineKeyboardButton(text='Пропустить⏩', callback_data=data))
+
+
+def gen_year(values, gen, year):
+    if gen:
+        gen_pos = values.find(gen[-1]) + len(gen)
+        return values[:gen_pos] + ' ' + year + values[gen_pos:]
+    else:
+        return values
+
