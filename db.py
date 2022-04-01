@@ -246,9 +246,7 @@ def get_steps(mark, model, gen=None):
         search_condition.append(BaseCars.generation.like(gen))
     where = sqlalchemy.and_(*search_condition)
     query = session.query(BaseCars).filter(where)
-    print(query.all())
     bodies = sorted(list(frozenset([x.body_type for x in query.all()])))
-    print(bodies)
     session.close()
     return bodies
 

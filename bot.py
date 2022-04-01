@@ -28,6 +28,7 @@ admins = [1651350663]
 tmp = {}
 stack = {}
 years = {}
+history = {}
 
 # Тут будут наши хендлеры
 # *******************************************************************************************************
@@ -106,6 +107,12 @@ async def exit_handler(callback: types.CallbackQuery, state: FSMContext):
 async def get_alphabet_menu(callback: types.CallbackQuery):
     tmp[callback.message.chat.id] = {}
     years[callback.message.chat.id] = {}
+    history[callback.message.chat.id] = []
+
+    messages = [x for x in history[callback.message.chat.id]]
+    if messages:
+        [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
+        history[callback.message.chat.id].clear()
 
     await callback.message.answer('Выберите первую букву марки авто', reply_markup=alphabet_menu)
     await callback.answer()
@@ -114,6 +121,7 @@ async def get_alphabet_menu(callback: types.CallbackQuery):
 @dp.callback_query_handler(text='buy_car_part_ru')
 async def buy_part(callback: types.CallbackQuery):
     years[callback.message.chat.id] = {}
+    history[callback.message.chat.id] = {}
     menu = types.InlineKeyboardMarkup()
     tmp[callback.message.chat.id]['letter'] = callback.data
     russian_cars = get_all_cars()
@@ -237,6 +245,7 @@ async def get_params(callback: types.CallbackQuery):
     order_menu.add(*order_menu_buttons)
     values = get_values(stack, callback)
     values = gen_year(values, stack[callback.message.chat.id].get('gen'), years[callback.message.chat.id].get('years'),)
+    print(values)
     get_back_buttons(markup=order_menu, back_command=get_pref(tmp[callback.message.chat.id]))
     print(tmp)
     await callback.message.edit_text(f'Вы выбрали {values} '
@@ -256,6 +265,7 @@ async def get_orders(callback: types.CallbackQuery):
         bodies = get_steps(stack[callback.message.chat.id].get('mark'),
                            stack[callback.message.chat.id].get('model'),
                            stack[callback.message.chat.id].get('gen'))
+        print(bodies)
         bodies_text = [types.InlineKeyboardButton(text=x, callback_data=f'body_{x}') for x in bodies if x]
         menu.add(*bodies_text)
         values = get_values(stack, callback)
@@ -277,6 +287,7 @@ async def get_orders(callback: types.CallbackQuery):
         await DetailFSM.detail.set()
         result = await callback.message.answer(f'Введите название детали')
         print(result)
+        history[callback.message.chat.id].append(result.message_id)
 
 
 @dp.callback_query_handler(Text(startswith='body_'))
@@ -324,6 +335,10 @@ async def get_engine_types(callback: types.CallbackQuery):
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
     values = gen_year(values, stack[callback.message.chat.id].get('gen'), years[callback.message.chat.id].get('years'),)
+    messages = [x for x in history[callback.message.chat.id]]
+    if messages:
+        [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
+        history[callback.message.chat.id].clear()
     await callback.message.edit_text(f'Вы выбрали {values}'
                                      f' Выберите тип двигателя', reply_markup=menu)
 
@@ -351,8 +366,13 @@ async def set_engine_volume(callback: types.CallbackQuery, state: FSMContext):
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
     values = gen_year(values, stack[callback.message.chat.id].get('gen'), years[callback.message.chat.id].get('years'),)
+
     await callback.message.edit_text(f'Вы выбрали {values}'
                                      f' Выберите объем двигателя', reply_markup=menu)
+    messages = [x for x in history[callback.message.chat.id]]
+    if messages:
+        [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
+        history[callback.message.chat.id].clear()
 
 
 @dp.callback_query_handler(Text(startswith='volume_'))
@@ -368,6 +388,10 @@ async def set_vin_code(callback: types.CallbackQuery):
     values = get_values(stack, callback)
     values = gen_year(values, stack[callback.message.chat.id].get('gen'), years[callback.message.chat.id].get('years'),)
     get_back_buttons(markup=mark_up, back_command=get_pref(tmp[callback.message.chat.id]))
+    messages = [x for x in history[callback.message.chat.id]]
+    if messages:
+        [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
+        history[callback.message.chat.id].clear()
     await VinCodeFSM.VIN.set()
     await callback.message.edit_text(f'Вы выбрали {values}'
                                      f' Введите VIN код вашего авто', reply_markup=mark_up)
@@ -390,8 +414,12 @@ async def handle_menu(message: types.Message):
         char = get_param(tmp=stack, message=message)
         char = gen_year(char, stack[message.chat.id].get('gen'),
                         years[message.chat.id].get('years'), )
-        await message.answer(f'Ваш заказ на авто:\n'
-                             f'{char}\n')
+        result = await message.answer(f'Ваш заказ на авто:\n'
+                                      f'{char}\n')
+        messages = [x for x in history[message.chat.id]]
+        [await bot.delete_message(message.chat.id, message_id=x) for x in messages]
+        history[message.chat.id].clear()
+        history[message.chat.id].append(result.message_id)
         await message.answer(f'Введите название нужной запчасти '
                              f'и при необходимости описание, '
                              f'особые пожелания по комплектации, '
@@ -426,7 +454,8 @@ async def order_manage(callback: types.CallbackQuery):
                                          f'контактом"', reply_markup=send_menu)
     elif callback.data.split('_')[1] == 'add':
         await DetailFSM.detail.set()
-        await callback.message.answer('Введите название детали')
+        result = await callback.message.answer('Введите название детали')
+        history[callback.message.chat.id].append(result.message_id)
 
 
 @dp.message_handler(state=VinCodeFSM.VIN)
@@ -435,11 +464,13 @@ async def vin_handler(message: types.Message):
     if len(message.text) == 17 and message.text.isalnum():
         stack[message.chat.id]['vin'] = message.text
         await DetailFSM.next()
-        await message.answer('Введите название детали')
+        result = await message.answer('Введите название детали')
+        history[message.chat.id].append(result.message_id)
     else:
         menu = types.InlineKeyboardMarkup()
         menu.add(types.InlineKeyboardButton(text='Отменить', callback_data='None'))
-        await message.answer('это не похоже на VIN код попробуйте ввести еще раз', reply_markup=menu)
+        result = await message.answer('это не похоже на VIN код попробуйте ввести еще раз', reply_markup=menu)
+        history[message.chat.id].append(result.message_id)
         await VinCodeFSM.next()
 
 
@@ -454,12 +485,19 @@ async def contact_handler(callback: types.CallbackQuery):
                                          f'если не хотите делится номером ', reply_markup=send_menu_accept_inline)
         await callback.answer()
     if callback.data.split('_')[1] == 'anon':
-        await callback.message.answer('Вы отправили предложение анонимно в группу')
+        result = await callback.message.answer('Вы отправили предложение анонимно в группу')
+        history[callback.message.chat.id].append(result)
         values = get_values(stack, callback)
         values = gen_year(values, stack[callback.message.chat.id].get('gen'),
                           years[callback.message.chat.id].get('years'), )
-
+        print(values)
+        messages = [x for x in history[callback.message.chat.id]]
+        [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
+        history[callback.message.chat.id].clear()
         detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[callback.message.chat.id]['details'], 1)]
+        await callback.message.answer(f'Заказ\n'
+                                      f'{values}\n'
+                                      f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
         await bot.send_message(group_id, f'Заказ\n'
                                          f'{values}\n'
                                          f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
@@ -489,10 +527,12 @@ async def contact_handler(callback: types.CallbackQuery):
 async def cancel(message: types.Message, state: FSMContext):
     if message.text == '❌Отмена':
         await state.finish()
-        await message.answer('Вы отменили ввод номера', reply_markup=types.ReplyKeyboardRemove())
+        message = await message.answer('Вы отменили ввод номера', reply_markup=types.ReplyKeyboardRemove())
+        history[message.chat.id].append(message)
         values = get_values(stack, message)
         values = gen_year(values, stack[message.chat.id].get('gen'),
                           years[message.chat.id].get('years'), )
+        print(values)
 
         detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
         await message.answer(f'Спасибо за Ваш заказ! '
@@ -505,9 +545,18 @@ async def cancel(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=PhoneNumber, content_types=['contact'])
 async def get_number(message: types.Message, state: FSMContext):
-    await message.answer('Вы отправили предложение в группу', reply_markup=types.ReplyKeyboardRemove())
+    values = get_param(stack, message)
+    values = gen_year(values, stack[message.chat.id].get('gen'), years[message.chat.id].get('years'), )
+    print(values)
+    detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
     menu = types.InlineKeyboardMarkup()
-    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data='предложение'))
+    await message.answer('Вы отправили предложение в группу', reply_markup=types.ReplyKeyboardRemove())
+    await message.answer(f'Заказ\n'
+                         f'{values}\n'
+                         f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
+    messages = [x for x in history[message.chat.id]]
+    [await bot.delete_message(message.chat.id, message_id=x) for x in messages]
+    history[message.chat.id].clear()
     if message.from_user.username:
         await message.reply(f"Добро пожаловать, {message.from_user.username}  ! "
                             f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
@@ -517,10 +566,6 @@ async def get_number(message: types.Message, state: FSMContext):
                             f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
                             reply_markup=start_menu)
     await state.finish()
-
-    values = get_param(stack, message)
-    values = gen_year(values, stack[message.chat.id].get('gen'), years[message.chat.id].get('years'), )
-    detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
     await bot.send_message(group_id, f'Заказ\n'
                                      f'{values}\n'
                                      f'Детали:\n{"".join(detail_list)}', reply_markup=menu)
@@ -538,7 +583,8 @@ async def skip_vin(callback: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await callback.answer()
     await DetailFSM.next()
-    await callback.message.answer('Введите название детали')
+    result = await callback.message.answer('Введите название детали')
+    history[callback.message.chat.id].append(result.message_id)
 
 
 @dp.callback_query_handler(text='state_exit', state='*')
@@ -578,6 +624,16 @@ async def get_feedback(message: types.Message):
             await bot.send_message(i, f'Сообщение от пользователя @{message.from_user.username}:\n{message.text}',
                                    reply_markup=mark_up)
         await message.answer('Ваш вопрос будет рассмотрен в ближайшее рабочее время')
+        if message.from_user.username:
+            await message.reply(
+                f"Добро пожаловать, {message.from_user.username}  ! "
+                f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
+                reply_markup=start_menu)
+        else:
+            await message.reply(
+                f"Добро пожаловать, {message.from_user.first_name}  ! "
+                f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
+                reply_markup=start_menu)
         await FeedBackFSM.next()
 
 
@@ -612,9 +668,11 @@ async def ord_back(callback: types.CallbackQuery):
     char = get_param(tmp=stack, message=callback.message)
     char = gen_year(char, stack[callback.message.chat.id].get('gen'),
                     years[callback.message.chat.id].get('years'), )
+    print(char)
 
-    await callback.message.answer(f'Ваш заказ на авто:\n'
-                                  f'{char}')
+    result = await callback.message.answer(f'Ваш заказ на авто:\n'
+                                           f'{char}')
+    history[callback.message.chat.id].append(result.message_id)
     await callback.message.answer(
                          f'Введите название нужной запчасти '
                          f'и при необходимости описание, '
