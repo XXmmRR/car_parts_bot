@@ -121,7 +121,7 @@ async def get_alphabet_menu(callback: types.CallbackQuery):
 @dp.callback_query_handler(text='buy_car_part_ru')
 async def buy_part(callback: types.CallbackQuery):
     years[callback.message.chat.id] = {}
-    history[callback.message.chat.id] = {}
+    history[callback.message.chat.id] = []
     menu = types.InlineKeyboardMarkup()
     tmp[callback.message.chat.id]['letter'] = callback.data
     russian_cars = get_all_cars()
@@ -205,13 +205,18 @@ async def get_gen(callback: types.CallbackQuery, state: FSMContext):
     stack[callback.message.chat.id]['model'] = model
     generations = get_generation_list(model=model, mark=stack[callback.message.chat.id].get('mark'))
     keyboard_buttons = []
+    keyboard_text = {}
     for i in get_generation_markup(generations):
         text = i + ' ' + get_gen_year(mark=stack[callback.message.chat.id]['mark'],
                                       model=stack[callback.message.chat.id]['model'],
                                       gen=i)
+        keyboard_text[text] = i
         keyboard_buttons.append(types.InlineKeyboardButton(text=text, callback_data=f'gen_{i}'))
-
-    menu.add(*keyboard_buttons)
+    r = sorted(keyboard_text, key=(lambda k: int(k[k.find('-') - 4:k.find('-')])))
+    buttons = [types.InlineKeyboardButton(text=x, callback_data=f'gen_{keyboard_text[x]}') for x in r]
+    print([keyboard_text[x] for x in r])
+    print(r)
+    menu.add(*buttons)
     if keyboard_buttons:
         if tmp[callback.message.chat.id].get('gen'):
             tmp[callback.message.chat.id].pop('gen')
@@ -670,7 +675,9 @@ async def ord_back(callback: types.CallbackQuery):
     char = gen_year(char, stack[callback.message.chat.id].get('gen'),
                     years[callback.message.chat.id].get('years'), )
     print(char)
-
+    if tmp[callback.message.chat.id].get('ordering'):
+        tmp[callback.message.chat.id].pop('ordering')
+    tmp[callback.message.chat.id]['ordering'] = callback.data
     result = await callback.message.answer(f'Ваш заказ на авто:\n'
                                            f'{char}')
     history[callback.message.chat.id].append(result.message_id)

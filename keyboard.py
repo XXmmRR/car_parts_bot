@@ -147,8 +147,9 @@ def add_skip_button(markup, data):
 
 def gen_year(values, gen, year):
     if gen:
-        gen_pos = values.find(gen[-1]) + 1
-        gen_pos2 = values.find(gen)
-        return values[:gen_pos2] + gen + ' ' + year + values[gen_pos:]
+        #gen_pos = values.find(gen[-1]) + len(gen)
+        gen_pos = values.rindex(gen[-1])
+        gen_pos2 = values.index(gen)
+        return values[:gen_pos2] + gen + ' ' + year + values[gen_pos + 1:]
     else:
         return values

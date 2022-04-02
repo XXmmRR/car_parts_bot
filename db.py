@@ -179,7 +179,7 @@ def get_gen_year(mark, model, gen):
 def get_generation_markup(model_data):
     pre_markup = [x.generation for x in model_data if x]
     markup = [x for x in pre_markup if x]
-    return sorted(list(frozenset(markup)), key=lambda x: x[:-8])
+    return sorted(list(frozenset(markup)))
 
 
 def get_engine_volume(model, gen=None, body_type=None, transmission=None, engine_type=None):
