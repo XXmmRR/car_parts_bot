@@ -127,6 +127,15 @@ class Offers(Base):
     get_phone = Column(Boolean, name='Номер запрашивался', default=False)
 
 
+def append_customer_data(chat_id, username, phone, seller, buys,):
+    session = Session()
+    add_customer = Customer(chat_id=chat_id, username=username, phone=phone,
+                            seller=seller, buys=buys)
+    session.add(add_customer)
+    session.commit()
+    session.close()
+
+
 def get_mark_list(letter):
     session = Session()
     mark = session.query(BaseCars).filter(BaseCars.mark.like(f'{letter}%')).all()
@@ -259,6 +268,20 @@ def get_all_cars():
 def get_param(tmp, message):
     parameters = ''
     for key, value in tmp[message.chat.id].items():
+        if key != 'details':
+            if value:
+                parameters = parameters + key + " : " + value + '\n'
+
+        parameters = parameters.replace('mark', 'Марка').replace('model', 'Модель').replace('transmission', 'КПП') \
+            .replace('body', 'Кузов').replace('engine_type', 'Тип двигателя').replace('vin', 'VIN') \
+            .replace('gen', 'Поколение').replace('engine_volume', 'Обьем двигателя')
+
+    return parameters
+
+
+def get_param_anon(tmp, callback):
+    parameters = ''
+    for key, value in tmp[callback.message.chat.id].items():
         if key != 'details':
             if value:
                 parameters = parameters + key + " : " + value + '\n'
