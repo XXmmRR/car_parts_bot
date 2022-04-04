@@ -489,7 +489,8 @@ async def vin_handler(message: types.Message):
 @dp.callback_query_handler(Text(startswith='send_'))
 async def contact_handler(callback: types.CallbackQuery):
     menu = types.InlineKeyboardMarkup()
-    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data='предложение'))
+    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data=f'offer_'
+                                                                                       f'{callback.message.chat.id}'))
     if callback.data.split('_')[1] == 'no':
         await callback.message.edit_text(f'Вы уверены что хотите удалить свой заказ? '
                                          f'и вернуться в главное меню? '
@@ -559,7 +560,7 @@ async def get_number(message: types.Message, state: FSMContext):
     detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
     menu = types.InlineKeyboardMarkup()
     stack[message.chat.id]['phone'] = message.contact.phone_number
-    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data='предложение'))
+    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data=f'offer_{message.chat.id}'))
     session = Session()
     customer_exist = session.query(Customer).filter(Customer.chat_id.like(message.chat.id)).all()
     if not customer_exist:
@@ -573,6 +574,21 @@ async def get_number(message: types.Message, state: FSMContext):
                                     phone=stack[message.chat.id]['phone'], )
             session.add(add_customer)
         session.commit()
+    customer_exist = session.query(Customer).filter(Customer.chat_id.like(message.chat.id)).all()[0]
+    add_order = Order(mark=stack[message.chat.id].get('mark'),
+                      generation=stack[message.chat.id].get('gen'),
+                      body_type=stack[message.chat.id].get('body'),
+                      transmission=stack[message.chat.id].get('transmission'),
+                      engine_type=stack[message.chat.id].get('engine_type'),
+                      VIN=stack[message.chat.id].get('vin'),
+                      customer_id=customer_exist.id,
+                      detail_len=len(detail_list))
+    session.add(add_order)
+    session.commit()
+    for i in detail_list:
+        add_detail = Detail(order_id=add_order.id, number=i[0], detail=f'{i[2:]}')
+        session.add(add_detail)
+    session.commit()
     session.close()
     await message.answer('Вы отправили предложение в группу', reply_markup=types.ReplyKeyboardRemove())
     await message.answer(f'Заказ\n'

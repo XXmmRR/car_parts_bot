@@ -104,6 +104,7 @@ class Order(Base):
     buy_status = Column(Boolean, nullable=True, name='Статус')
     status = Column(Boolean, nullable=True, name='Статус покупки', default=None)
     created_date = Column(DateTime, default=datetime.datetime.utcnow, name='Дата и время заказа')
+    detail_len = Column(Integer, name='Запчастей в заказе')
     detail = relationship("Detail", backref='order')
 
 
