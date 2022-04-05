@@ -294,5 +294,35 @@ def get_param_anon(tmp, callback):
     return parameters
 
 
+def make_dict(tmp, mark, generation, body_type, transmission, engine_type, VIN):
+    if mark:
+        tmp['mark'] = mark
+    if generation:
+        tmp['gen'] = generation
+    if body_type:
+        tmp['body'] = body_type
+    if transmission:
+        tmp['transmission'] = transmission
+    if engine_type:
+        tmp['engine_type'] = engine_type
+    if VIN:
+        tmp['vin'] = VIN
+    return tmp
+
+
+def get_parametrs(tmp):
+    parameters = ''
+    for key, value in tmp.items():
+        if key != 'details':
+            if value:
+                parameters = parameters + key + " : " + value + '\n'
+
+        parameters = parameters.replace('mark', 'Марка').replace('model', 'Модель').replace('transmission', 'КПП') \
+            .replace('body', 'Кузов').replace('engine_type', 'Тип двигателя').replace('vin', 'VIN') \
+            .replace('gen', 'Поколение').replace('engine_volume', 'Обьем двигателя')
+
+    return parameters
+
+
 if __name__ == '__main__':
     create_db()

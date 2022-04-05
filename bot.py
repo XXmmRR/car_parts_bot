@@ -5,7 +5,7 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, alphabet_menu, \
     order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline, get_back_buttons, \
-    get_pref, get_values, add_skip_button, gen_year, alphabet_buttons_ru_text
+    get_pref, get_values, add_skip_button, gen_year, alphabet_buttons_ru_text, start_back_button
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import get_box, get_engine_type
@@ -13,7 +13,7 @@ from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
     get_generation_markup, get_steps, get_engine_volume, get_param, get_gen_year, get_all_cars, get_param_anon
-from db import Customer, Order, Detail, Session
+from db import Customer, Order, Detail, Session, make_dict, get_parametrs
 from config import TOKEN  # импортируем из config.py токен бота
 
 bot = Bot(token=TOKEN)  # Передаем боту токен
@@ -238,6 +238,7 @@ async def get_gen(callback: types.CallbackQuery, state: FSMContext):
         if messages:
             [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
             history[callback.message.chat.id].clear()
+        stack[callback.message.chat.id]['details'] = []
         await callback.message.edit_text(f'Вы выбрали {values}'
                                          f'Хотите указать дополнительные параметры: тип кузова, тип и объем '
                                          f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
@@ -264,7 +265,7 @@ async def get_params(callback: types.CallbackQuery):
     if messages:
         [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
         history[callback.message.chat.id].clear()
-
+    stack[callback.message.chat.id]['details'] = []
     await callback.message.edit_text(f'Вы выбрали {values} '
                                      f'Хотите указать дополнительные параметры: тип кузова, тип и объем '
                                      f'двигателя, тип коробки передач, VIN?', reply_markup=order_menu)
@@ -376,13 +377,9 @@ async def set_engine_volume(callback: types.CallbackQuery, state: FSMContext):
     get_back_buttons(markup=menu, back_command=get_pref(tmp[callback.message.chat.id]))
     values = get_values(stack, callback)
     values = gen_year(values, stack[callback.message.chat.id].get('gen'), years[callback.message.chat.id].get('years'),)
-
+    stack[callback.message.chat.id]['details'] = []
     await callback.message.edit_text(f'Вы выбрали {values}'
                                      f' Выберите объем двигателя', reply_markup=menu)
-    messages = [x for x in history[callback.message.chat.id]]
-    if messages:
-        [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
-        history[callback.message.chat.id].clear()
 
 
 @dp.callback_query_handler(Text(startswith='volume_'))
@@ -399,15 +396,18 @@ async def set_vin_code(callback: types.CallbackQuery):
     values = gen_year(values, stack[callback.message.chat.id].get('gen'), years[callback.message.chat.id].get('years'),)
     get_back_buttons(markup=mark_up, back_command=get_pref(tmp[callback.message.chat.id]))
     messages = [x for x in history[callback.message.chat.id]]
-    if messages:
-        [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
-        history[callback.message.chat.id].clear()
+    #if messages:
+    #    [await bot.delete_message(callback.message.chat.id, message_id=x) for x in messages]
+    #    history[callback.message.chat.id].clear()
+    if stack[callback.message.chat.id].get('vin'): stack[callback.message.chat.id].pop('vin')
     await VinCodeFSM.VIN.set()
     await callback.message.edit_text(f'Вы выбрали {values}'
                                      f' Введите VIN код вашего авто', reply_markup=mark_up)
 
 
+
 # *******************************************************************************************************
+
 
 
 @dp.message_handler(state=DetailFSM.detail)
@@ -416,7 +416,6 @@ async def handle_menu(message: types.Message):
     add_offer_menu.add(*add_offer_buttons)
 
     if len(message.text) > 5 and len(message.text) < 201:
-
         await DetailFSM.next()
         stack[message.chat.id]['details'].append(message.text)
         detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
@@ -474,6 +473,7 @@ async def order_manage(callback: types.CallbackQuery):
 async def vin_handler(message: types.Message):
     await VinCodeFSM.next()
     if len(message.text) == 17 and message.text.isalnum():
+        if stack[message.chat.id].get('vin'): stack[message.chat.id].pop('vin')
         stack[message.chat.id]['vin'] = message.text
         await DetailFSM.next()
         result = await message.answer('Введите название детали')
@@ -489,8 +489,6 @@ async def vin_handler(message: types.Message):
 @dp.callback_query_handler(Text(startswith='send_'))
 async def contact_handler(callback: types.CallbackQuery):
     menu = types.InlineKeyboardMarkup()
-    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data=f'offer_'
-                                                                                       f'{callback.message.chat.id}'))
     if callback.data.split('_')[1] == 'no':
         await callback.message.edit_text(f'Вы уверены что хотите удалить свой заказ? '
                                          f'и вернуться в главное меню? '
@@ -505,6 +503,36 @@ async def contact_handler(callback: types.CallbackQuery):
         values = gen_year(values, stack[callback.message.chat.id].get('gen'),
                           years[callback.message.chat.id].get('years'), )
         detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[callback.message.chat.id]['details'], 1)]
+        session = Session()
+        customer_exist = session.query(Customer).filter(Customer.chat_id.like(callback.message.chat.id)).all()
+        if not customer_exist:
+            if callback.message.from_user.username:
+                add_customer = Customer(chat_id=callback.message.chat.id,
+                                        username='@' + callback.message.from_user.username,
+                                        phone=stack[callback.message.chat.id]['phone'], )
+                session.add(add_customer)
+            else:
+                add_customer = Customer(chat_id=callback.message.chat.id,
+                                        phone=stack[callback.message.chat.id]['phone'], )
+                session.add(add_customer)
+            session.commit()
+        customer_exist = session.query(Customer).filter(Customer.chat_id.like(callback.message.chat.id)).all()[0]
+        add_order = Order(mark=stack[callback.message.chat.id].get('mark'),
+                          generation=stack[callback.message.chat.id].get('gen'),
+                          body_type=stack[callback.message.chat.id].get('body'),
+                          transmission=stack[callback.message.chat.id].get('transmission'),
+                          engine_type=stack[callback.message.chat.id].get('engine_type'),
+                          VIN=stack[callback.message.chat.id].get('vin'),
+                          customer_id=customer_exist.id,
+                          detail_len=len(detail_list))
+        session.add(add_order)
+        session.commit()
+        for i in detail_list:
+            add_detail = Detail(order_id=add_order.id, number=i[0], detail=f'{i[2:]}')
+            session.add(add_detail)
+        session.commit()
+        menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data=f'offerid_{add_order.id}'))
+        session.close()
         await callback.message.answer(f'Заказ\n'
                                       f'{values}\n'
                                       f'Детали:\n{"".join(detail_list)}')
@@ -560,7 +588,6 @@ async def get_number(message: types.Message, state: FSMContext):
     detail_list = [str(c) + ')' + x + '\n' for c, x in enumerate(stack[message.chat.id]['details'], 1)]
     menu = types.InlineKeyboardMarkup()
     stack[message.chat.id]['phone'] = message.contact.phone_number
-    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data=f'offer_{message.chat.id}'))
     session = Session()
     customer_exist = session.query(Customer).filter(Customer.chat_id.like(message.chat.id)).all()
     if not customer_exist:
@@ -589,6 +616,7 @@ async def get_number(message: types.Message, state: FSMContext):
         add_detail = Detail(order_id=add_order.id, number=i[0], detail=f'{i[2:]}')
         session.add(add_detail)
     session.commit()
+    menu.add(types.InlineKeyboardButton(text='Предложить запчасть боту', callback_data=f'offerid_{add_order.id}'))
     session.close()
     await message.answer('Вы отправили предложение в группу', reply_markup=types.ReplyKeyboardRemove())
     await message.answer(f'Заказ\n'
@@ -736,6 +764,38 @@ async def ord_back(callback: types.CallbackQuery):
 # Начало блока ответа продавца
 # ********************************************************************************************************************
 
+@dp.callback_query_handler(text='preexit')
+async def prexit_handler(callback: types.CallbackQuery):
+    await callback.message.edit_text(f'Вы не отправили предложение по этому заказу. зайдите еще раз в заказ '
+                                     f'если вышли ошибочно')
+
+
+@dp.callback_query_handler(Text(startswith='offerid'))
+async def get_order(callback: types.CallbackQuery):
+    offer = callback.data.split('_')[1]
+    session = Session()
+    order = session.query(Order).filter(Order.id.like(offer)).all()[0]
+    tempdict = {}
+    car_attrs = make_dict(tempdict, mark=order.mark, generation=order.generation,
+                         body_type=order.body_type, transmission=order.transmission,
+                         engine_type=order.engine_type, VIN=order.VIN)
+    char = get_parametrs(tmp=car_attrs)
+    buttons = [types.InlineKeyboardButton(callback_data=f'detail_{str(x.id)}', text=str(x.number) + ')' + x.detail)
+               for x in order.detail]
+    menu = types.InlineKeyboardMarkup(row_width=1)
+    menu.add(*buttons)
+    menu.add(start_back_button, types.InlineKeyboardButton(text='❌Выход', callback_data='preexit'))
+    await bot.send_message(callback.from_user.id,
+                           f'Заказ \n'
+                           f'{char}\n'
+                           f'Выберите запчасть из списка\nкоторую хотите предложить\n'
+                           f'Если запчастей несколько бот спросит \nу вас об этом далее', reply_markup=menu)
+
+
+@dp.callback_query_handler(Text(startswith='detail'))
+async def get_detail(callback: types.CallbackQuery):
+    print(callback.data)
+    await callback.message.answer('Вы нажали на деталь')
 
 
 if __name__ == '__main__':
