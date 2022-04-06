@@ -5,11 +5,13 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, alphabet_menu, \
     order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline, get_back_buttons, \
-    get_pref, get_values, add_skip_button, gen_year, alphabet_buttons_ru_text, start_back_button
+    get_pref, get_values, add_skip_button, gen_year, alphabet_buttons_ru_text, start_back_button, get_text_seller, \
+    get_text_seller_call
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import get_box, get_engine_type
-from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
+from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber, DetailPrice, DetailText, \
+    PhoneNumberSeller
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
     get_generation_markup, get_steps, get_engine_volume, get_param, get_gen_year, get_all_cars, get_param_anon
@@ -25,11 +27,16 @@ answer = {}
 
 admins = [1651350663]
 
+# Временные словари
 tmp = {}
 stack = {}
 years = {}
 history = {}
 
+back_answers_callbacks = {}
+tmp_sell = {}
+tmp_sell_details = {}
+callbacK_back = {}
 # Тут будут наши хендлеры
 # *******************************************************************************************************
 
@@ -39,7 +46,7 @@ async def process_start_command(message: types.Message, state: FSMContext):  # �
     if state:
         await state.finish()
     if message.from_user.username:
-        await message.reply(f"Добро пожаловать, {message.from_user.username}  ! "
+        await message.reply(f"Добро пожаловать, @{message.from_user.username}  ! "
                             f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
                             reply_markup=start_menu)
     else:
@@ -770,8 +777,16 @@ async def prexit_handler(callback: types.CallbackQuery):
                                      f'если вышли ошибочно')
 
 
-@dp.callback_query_handler(Text(startswith='offerid'))
-async def get_order(callback: types.CallbackQuery):
+@dp.callback_query_handler(Text(startswith='offerid'), state='*')
+async def get_order(callback: types.CallbackQuery, state: FSMContext):
+    if state:
+        await state.finish()
+    already_buttons = []
+    if tmp_sell.get(callback.message.chat.id):
+        if tmp_sell[callback.message.chat.id].get('mydetail'):
+            already_buttons = [x.id for x in tmp_sell[callback.message.chat.id]['mydetail']]
+
+    back_answers_callbacks['start'] = callback.data
     offer = callback.data.split('_')[1]
     session = Session()
     order = session.query(Order).filter(Order.id.like(offer)).all()[0]
@@ -780,11 +795,13 @@ async def get_order(callback: types.CallbackQuery):
                          body_type=order.body_type, transmission=order.transmission,
                          engine_type=order.engine_type, VIN=order.VIN)
     char = get_parametrs(tmp=car_attrs)
+    tmp_sell_details['button_list'] = [x for x in order.detail]
     buttons = [types.InlineKeyboardButton(callback_data=f'detail_{str(x.id)}', text=str(x.number) + ')' + x.detail)
-               for x in order.detail]
+               for x in order.detail if x.id not in already_buttons]
     menu = types.InlineKeyboardMarkup(row_width=1)
     menu.add(*buttons)
     menu.add(start_back_button, types.InlineKeyboardButton(text='❌Выход', callback_data='preexit'))
+    session.close()
     await bot.send_message(callback.from_user.id,
                            f'Заказ \n'
                            f'{char}\n'
@@ -792,10 +809,140 @@ async def get_order(callback: types.CallbackQuery):
                            f'Если запчастей несколько бот спросит \nу вас об этом далее', reply_markup=menu)
 
 
-@dp.callback_query_handler(Text(startswith='detail'))
-async def get_detail(callback: types.CallbackQuery):
-    print(callback.data)
-    await callback.message.answer('Вы нажали на деталь')
+@dp.callback_query_handler(Text(startswith='detail'), state='*')
+async def get_detail(callback: types.CallbackQuery, state: FSMContext):
+    if not tmp_sell.get(callback.message.chat.id):
+        tmp_sell[callback.message.chat.id] = {}
+        if not tmp_sell[callback.message.chat.id].get('mydetail'):
+            tmp_sell[callback.message.chat.id]['mydetail'] = []
+            tmp_sell[callback.message.chat.id]['price'] = []
+            tmp_sell[callback.message.chat.id]['body'] = []
+    if state:
+        await state.finish()
+    callbacK_back[callback.message.chat.id] = {}
+    callbacK_back[callback.message.chat.id]['detail'] = callback.data
+    detail_id = callback.data.split('_')[1]
+    session = Session()
+    detail_name = session.query(Detail).get(detail_id)
+    tmp_sell[callback.message.chat.id]['mydetail'].append(detail_name)
+    detail_name = detail_name.detail
+    session.close()
+    menu = types.InlineKeyboardMarkup()
+    print(back_answers_callbacks['start'])
+    menu.row(types.InlineKeyboardButton(text='🔙Назад', callback_data=back_answers_callbacks['start']))
+    await callback.message.edit_text(f'Укажите цену на {detail_name}в грн', reply_markup=menu)
+    await DetailPrice.price.set()
+
+
+@dp.message_handler(state=DetailPrice)
+async def set_price_handler(message: types.Message, state: FSMContext):
+    print(message.text)
+    if int(message.text) > 6 and int(message.text) < 999999:
+        tmp_sell[message.chat.id]['price'].append(message.text)
+        print(tmp_sell)
+        menu = types.InlineKeyboardMarkup()
+        print(f'detail_{callbacK_back[message.chat.id]["detail"]}')
+        menu.row(types.InlineKeyboardButton(text='🔙Назад', callback_data=f'{callbacK_back[message.chat.id]["detail"]}'),
+                 types.InlineKeyboardButton(text='❌Выход', callback_data='preexit'))
+        await message.answer('Введите свой коментарий к запчасти, состояние и другие нюансы которые '
+                             'могут интересовать покупателя', reply_markup=menu)
+        await DetailText.body.set()
+    else:
+        await message.answer('цена должна быть в диапазоне от 10грн до 999999 округленная '
+                             'до 1 грн попробуйте ввести еще раз')
+
+
+@dp.callback_query_handler(text='backdetailbody')
+async def back_set_body(callback: types.CallbackQuery, state: FSMContext):
+    menu = types.InlineKeyboardMarkup()
+    menu.row(types.InlineKeyboardButton(text='🔙Назад', callback_data=f'{callbacK_back[callback.message.chat.id]["detail"]}'),
+             types.InlineKeyboardButton(text='❌Выход', callback_data='preexit'))
+    await callback.message.edit_text('Введите свой коментарий к запчасти, состояние и другие нюансы которые '
+                                  'могут интересовать покупателя', reply_markup=menu)
+    await DetailText.body.set()
+
+
+@dp.message_handler(state=DetailText)
+async def set_body_handler(message: types.Message, state: FSMContext):
+    await state.finish()
+    offer = back_answers_callbacks['start'].split('_')[1]
+    print(offer)
+    tmp_sell[message.chat.id]['body'].append(message.text)
+    session = Session()
+    order = session.query(Order).filter(Order.id.like(offer)).all()[0]
+    tempdict = {}
+    menu = types.InlineKeyboardMarkup()
+    menu.row(types.InlineKeyboardButton(text='🔙Назад', callback_data='backdetailbody'),
+             types.InlineKeyboardButton(text='Продолжить', callback_data='continue'))
+    car_attrs = make_dict(tempdict, mark=order.mark, generation=order.generation,
+                         body_type=order.body_type, transmission=order.transmission,
+                         engine_type=order.engine_type, VIN=order.VIN)
+    char = get_parametrs(tmp=car_attrs)
+    text = get_text_seller(char, tmp_sell, message, offer=offer)
+    await message.answer(f'{text}', reply_markup=menu)
+
+
+@dp.callback_query_handler(Text(startswith='continue'))
+async def continue_handler(callback: types.CallbackQuery):
+    print(tmp_sell_details['button_list'], tmp_sell[callback.message.chat.id]['mydetail'])
+    if len(tmp_sell_details['button_list']) == len(tmp_sell[callback.message.chat.id]['mydetail']) or callback.data[-1] == '1':
+        offer = back_answers_callbacks['start'].split('_')[1]
+        menu = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton(text='✅Поделится контактом', callback_data='contactseller'),
+                                                types.InlineKeyboardButton(text='❌Не отправлять предложение', callback_data='dontsell'))
+        session = Session()
+        order = session.query(Order).filter(Order.id.like(offer)).all()[0]
+        tempdict = {}
+        car_attrs = make_dict(tempdict, mark=order.mark, generation=order.generation,
+                             body_type=order.body_type, transmission=order.transmission,
+                             engine_type=order.engine_type, VIN=order.VIN)
+        char = get_parametrs(tmp=car_attrs)
+        text = get_text_seller_call(char, tmp_sell, callback, offer=offer)
+        await callback.message.edit_text(f'{text}', reply_markup=menu)
+    else:
+        offer = back_answers_callbacks['start'].split('_')[1]
+        print(offer)
+        menu = types.InlineKeyboardMarkup(row_width=1).add(
+            types.InlineKeyboardButton(text='Есть еще запчасть на это авто', callback_data=f'offerid_{offer}'),
+            types.InlineKeyboardButton(text='Больше нет, отправить предложение', callback_data='continue1')
+        )
+        await callback.message.edit_text('У вас есть еще запчасти из заказа на это авто?', reply_markup=menu)
+
+
+@dp.callback_query_handler(text='dontsell')
+async def dontsell_handler(callback: types.CallbackQuery):
+    menu = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton(text='❌Да, удалить', callback_data='exit')).add(
+        types.InlineKeyboardButton(text='🔙Нет, вернуться к отправке', callback_data='continue'))
+    await callback.message.edit_text('Вы уверены что хотите удалить свое\nпредложение и вернуться в главное\nменю?',
+                                     reply_markup=menu)
+
+
+@dp.callback_query_handler(text='contactseller')
+async def get_contact_seller_buttons(callback: types.CallbackQuery):
+    get_contact = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton
+                                                                      ('Отправить свой контакт ☎️',
+                                                                       request_contact=True))
+    get_contact.add(types.KeyboardButton('❌Отмена'))
+    await callback.message.answer('Отправьте ваш номер', reply_markup=get_contact)
+    await PhoneNumberSeller.number.set()
+
+
+@dp.message_handler(state=PhoneNumberSeller, content_types=['contact'])
+async def get_contact_seller(message: types.Message, state:FSMContext):
+    await state.finish()
+    await message.answer('вы отправили предложение!', reply_markup=types.ReplyKeyboardRemove())
+    if tmp_sell.get(message.chat.id):
+        tmp_sell[message.chat.id] = {}
+        if tmp_sell[message.chat.id].get('mydetail'):
+            tmp_sell[message.chat.id]['mydetail'] = []
+
+    if message.from_user.username:
+        await message.reply(f"Добро пожаловать, @{message.from_user.username}  ! "
+                            f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
+                            reply_markup=start_menu)
+    else:
+        await message.reply(f"Добро пожаловать, {message.from_user.first_name}  ! "
+                            f"Я @car_part_bot - удобный бот-по заказу и продаже автомабильных запчастей",
+                            reply_markup=start_menu)
 
 
 if __name__ == '__main__':

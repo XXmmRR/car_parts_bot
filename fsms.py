@@ -23,3 +23,15 @@ class FeedBackAnswer(StatesGroup):
 
 class PhoneNumber(StatesGroup):
     number = State()
+
+
+class DetailPrice(StatesGroup):
+    price = State()
+
+
+class DetailText(StatesGroup):
+    body = State()
+
+
+class PhoneNumberSeller(StatesGroup):
+    number = State()

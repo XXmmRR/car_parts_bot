@@ -154,3 +154,21 @@ def gen_year(values, gen, year):
         return values[:gen_pos2] + gen + ' ' + year + values[gen_pos + 1:]
     else:
         return values
+
+
+def get_text_seller(char, tmp_sell, message, offer='',):
+    text=f'Заказ №{offer}\n{char}\nВы предложили запчасть\n'
+    for i in range(len(tmp_sell[message.chat.id]["mydetail"])):
+        text += f'{str(tmp_sell[message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[message.chat.id]["mydetail"][i].detail}По цене: {tmp_sell[message.chat.id]["price"][i]}\nКоментарий к заказу:"{tmp_sell[message.chat.id]["body"][i]}"\n'
+    text+='Если предложение содержит ошибки\n то воспользуйтесь кнопкой "назад" и внесите необходимые коррективы'
+    return text
+
+
+def get_text_seller_call(char, tmp_sell, callback, offer='',):
+    text=f'Спасибо за предложение!\nВы предложили запчасти'
+    for i in range(len(tmp_sell[callback.message.chat.id]["mydetail"])):
+        text += f'{str(tmp_sell[callback.message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[callback.message.chat.id]["mydetail"][i].detail}По цене: {tmp_sell[callback.message.chat.id]["price"][i]}\nКоментарий к заказу:"{tmp_sell[callback.message.chat.id]["body"][i]}"\n'
+    text+='Чтобы отправить предложение и\n клиент смог с Вами связаться\n нажмите "Поделиться контактом"'
+    return text
+
+
