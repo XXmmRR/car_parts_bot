@@ -157,18 +157,24 @@ def gen_year(values, gen, year):
 
 
 def get_text_seller(char, tmp_sell, message, offer='',):
-    text=f'Заказ №{offer}\n{char}\nВы предложили запчасть\n'
+    text=f'*Заказ №{offer}*\n*Вы предложили запчасть*\n{char}\n'
     for i in range(len(tmp_sell[message.chat.id]["mydetail"])):
-        text += f'{str(tmp_sell[message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[message.chat.id]["mydetail"][i].detail}По цене: {tmp_sell[message.chat.id]["price"][i]}\nКоментарий к заказу:"{tmp_sell[message.chat.id]["body"][i]}"\n'
-    text+='Если предложение содержит ошибки\n то воспользуйтесь кнопкой "назад" и внесите необходимые коррективы'
+        text += f'{str(tmp_sell[message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[message.chat.id]["mydetail"][i].detail}*По цене: {tmp_sell[message.chat.id]["price"][i]}*\n*Коментарий к заказу:"{tmp_sell[message.chat.id]["body"][i]}"*\n'
+    text+='Если предложение содержит ошибки\nто воспользуйтесь кнопкой "назад" и внесите необходимые коррективы'
     return text
 
 
 def get_text_seller_call(char, tmp_sell, callback, offer='',):
-    text=f'Спасибо за предложение!\nВы предложили запчасти'
+    text=f'Спасибо за предложение!\nВы предложили запчасти\n{char}\n'
     for i in range(len(tmp_sell[callback.message.chat.id]["mydetail"])):
-        text += f'{str(tmp_sell[callback.message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[callback.message.chat.id]["mydetail"][i].detail}По цене: {tmp_sell[callback.message.chat.id]["price"][i]}\nКоментарий к заказу:"{tmp_sell[callback.message.chat.id]["body"][i]}"\n'
-    text+='Чтобы отправить предложение и\n клиент смог с Вами связаться\n нажмите "Поделиться контактом"'
+        text += f'{str(tmp_sell[callback.message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[callback.message.chat.id]["mydetail"][i].detail}*По цене: {tmp_sell[callback.message.chat.id]["price"][i]}*\n*Коментарий к заказу:"{tmp_sell[callback.message.chat.id]["body"][i]}*"\n'
+    text+='\nЧтобы отправить предложение и\nклиент смог с Вами связаться\nнажмите "*Поделиться контактом*"'
     return text
 
+
+def get_text_seller_call_main_menu(char, tmp_sell, callback, offer='',):
+    text=f'Вы уже добавили предложения:\n'
+    for i in range(len(tmp_sell[callback.message.chat.id]["mydetail"])):
+        text += f'{str(tmp_sell[callback.message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[callback.message.chat.id]["mydetail"][i].detail}По цене: {tmp_sell[callback.message.chat.id]["price"][i]}\nКоментарий к заказу:"{tmp_sell[callback.message.chat.id]["body"][i]}"\n\n'
+    return text
 

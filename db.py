@@ -95,6 +95,7 @@ class Order(Base):
     __tablename__ = 'order'
     id = Column(Integer, primary_key=True, name='id')
     mark = Column(String(50), nullable=True, name='Марка')
+    model = Column(String(50), nullable=True, name='Модель')
     generation = Column(String(60), nullable=True, name='Поколение')
     body_type = Column(String(50), nullable=True, name='Тип кузова')
     transmission = Column(String(50), nullable=True, name='КПП')
@@ -294,9 +295,11 @@ def get_param_anon(tmp, callback):
     return parameters
 
 
-def make_dict(tmp, mark, generation, body_type, transmission, engine_type, VIN):
+def make_dict(tmp, mark, model, generation, body_type, transmission, engine_type, VIN):
     if mark:
         tmp['mark'] = mark
+    if model:
+        tmp['model'] = model
     if generation:
         tmp['gen'] = generation
     if body_type:
