@@ -178,3 +178,10 @@ def get_text_seller_call_main_menu(char, tmp_sell, callback, offer='',):
         text += f'{str(tmp_sell[callback.message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[callback.message.chat.id]["mydetail"][i].detail}По цене: {tmp_sell[callback.message.chat.id]["price"][i]}\nКоментарий к заказу:"{tmp_sell[callback.message.chat.id]["body"][i]}"\n\n'
     return text
 
+
+def get_offer_text(char, tmp_sell, message, offer='',):
+    text=f'По вашему заказу новое предложение!\n{char}\nПредложение\n'
+    for i in range(len(tmp_sell[message.chat.id]["mydetail"])):
+        text += f'{str(tmp_sell[message.chat.id]["mydetail"][i].number) + ")" + tmp_sell[message.chat.id]["mydetail"][i].detail}По цене: {tmp_sell[message.chat.id]["price"][i]}\nКоментарий к заказу:"{tmp_sell[message.chat.id]["body"][i]}"\n'
+    text+='\nЕсли предложение заинтересовало\nнажмите запросить контакт продавца\nсвяжитесь с ним\n\nЕсли вы уже купили какие-то запчасти\nнажмите "отредактировать заказ" и удалите все ненужное'
+    return text

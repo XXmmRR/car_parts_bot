@@ -6,7 +6,7 @@ from aiogram.utils import executor
 from keyboard import start_menu, shipping_menu, how_to_sell_menu, about_menu, alphabet_menu, \
     order_menu_buttons, add_offer_buttons, send_menu, send_menu_accept_inline, get_back_buttons, \
     get_pref, get_values, add_skip_button, gen_year, alphabet_buttons_ru_text, start_back_button, get_text_seller, \
-    get_text_seller_call, get_text_seller_call_main_menu
+    get_text_seller_call, get_text_seller_call_main_menu, get_offer_text
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters import Text
 from db import get_box, get_engine_type
@@ -15,7 +15,7 @@ from fsms import DetailFSM, VinCodeFSM, FeedBackFSM, FeedBackAnswer, PhoneNumber
 from aiogram.dispatcher import FSMContext
 from db import get_mark_list, get_mark_markup, get_model_list, get_model_markup, get_generation_list, \
     get_generation_markup, get_steps, get_engine_volume, get_param, get_gen_year, get_all_cars, get_param_anon
-from db import Customer, Order, Detail, Session, make_dict, get_parametrs
+from db import Customer, Order, Detail, Session, make_dict, get_parametrs, Offers
 from config import TOKEN  # импортируем из config.py токен бота
 
 bot = Bot(token=TOKEN)  # Передаем боту токен
@@ -783,6 +783,7 @@ async def prexit_handler(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(Text(startswith='offerid'), state='*')
 async def get_order(callback: types.CallbackQuery, state: FSMContext):
+    print(callback)
     if state:
         await state.finish()
     print(callback.data)
@@ -983,6 +984,31 @@ async def get_contact_seller(message: types.Message, state: FSMContext):
                                     phone=phone, )
             session.add(add_customer)
         session.commit()
+    customer_exist = session.query(Customer).filter(Customer.chat_id.like(message.chat.id)).all()[0]
+    for i in range(len(tmp_sell[message.chat.id]['mydetail'])):
+        add_offer = Offers(detail_numer=int(tmp_sell[message.chat.id]['mydetail'][i].number),
+                           detail=tmp_sell[message.chat.id]['mydetail'][i].detail,
+                           order_id=tmp_sell[message.chat.id]['mydetail'][i].order_id,
+                           price=tmp_sell[message.chat.id]['price'][i],
+                           seller_comment=tmp_sell[message.chat.id]['body'][i],
+                           seller_id=customer_exist.id)
+        session.add(add_offer)
+    session.commit()
+    session = Session()
+    order = session.query(Order).filter(Order.id.like(tmp_sell[message.chat.id]['mydetail'][0].order_id)).all()[0]
+    send_id = session.query(Customer).filter(Customer.id.like(order.customer_id)).all()[0].chat_id
+    tempdict = {}
+    car_attrs = make_dict(tempdict, mark=order.mark, model=order.model, generation=order.generation,
+                         body_type=order.body_type, transmission=order.transmission,
+                         engine_type=order.engine_type, VIN=order.VIN)
+    char = get_parametrs(tmp=car_attrs)
+    if order.generation:
+        years = get_gen_year(mark=order.mark,
+                             model=order.model,
+                            gen=order.generation)
+        char = gen_year(char, order.generation, years,)
+    text = get_offer_text(char, tmp_sell, message)
+    await bot.send_message(send_id, text)
     session.close()
     if tmp_sell.get(message.chat.id):
         tmp_sell[message.chat.id] = {}

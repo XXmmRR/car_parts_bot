@@ -89,6 +89,7 @@ class Customer(Base):
     seller = Column(Integer, nullable=True, name='Продавец', default=0)
     buys = Column(Integer, nullable=True, name='Покупатель', default=0)
     orders = relationship("Order", backref='customer')
+    offers = relationship("Offers", backref='customer')
 
 
 class Order(Base):
@@ -107,6 +108,7 @@ class Order(Base):
     created_date = Column(DateTime, default=datetime.datetime.utcnow, name='Дата и время заказа')
     detail_len = Column(Integer, name='Запчастей в заказе')
     detail = relationship("Detail", backref='order')
+    offers = relationship("Offers", backref='order')
 
 
 class Detail(Base):
@@ -121,11 +123,12 @@ class Detail(Base):
 class Offers(Base):
     __tablename__ = 'offer'
     element_id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('order.id'))
     detail_numer = Column(Integer, nullable=True)
     detail = Column(String(200), nullable=True, name='Название запчасти')
     price = Column(Integer, nullable=True)
     seller_comment = Column(String(200), name='Комментарий продавца')
-    seller_id = Column(String(150), name='ID продавца')
+    seller_id = Column(Integer, ForeignKey('customer.id'), name='ID продавца')
     get_phone = Column(Boolean, name='Номер запрашивался', default=False)
 
 
